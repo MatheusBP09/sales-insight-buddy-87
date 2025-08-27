@@ -133,6 +133,13 @@
   }
 }
 
+/* Professional Utility Classes */
+@layer components {
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+}
+
 /* Professional Component Styles */
 @layer base {
   * {
