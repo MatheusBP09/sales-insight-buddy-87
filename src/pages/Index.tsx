@@ -5,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Play, Pause, Square, Clock, Users, Target, TrendingUp, BarChart3, History, Mic, LogOut } from "lucide-react";
+import { Play, Pause, Square, Clock, Users, Target, TrendingUp, BarChart3, History, Mic, LogOut, Trash2 } from "lucide-react";
 import { useAudioRecording } from "@/hooks/useAudioRecording";
 import { useMeetings } from "@/hooks/useMeetings";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
+import { MeetingDetailsDialog } from "@/components/MeetingDetailsDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const Index = () => {
   const { toast } = useToast();
@@ -17,8 +19,11 @@ const Index = () => {
   const [meetingTitle, setMeetingTitle] = useState("");
   const [clientCompany, setClientCompany] = useState("");
   const [currentMeeting, setCurrentMeeting] = useState<any>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
+  const [showMeetingDetails, setShowMeetingDetails] = useState(false);
+  const [meetingToDelete, setMeetingToDelete] = useState<any>(null);
   
-  const { meetings, stats, loading: meetingsLoading, createMeeting, updateMeeting } = useMeetings();
+  const { meetings, stats, loading: meetingsLoading, createMeeting, updateMeeting, deleteMeeting } = useMeetings();
   
   const {
     isRecording,
@@ -132,6 +137,18 @@ const Index = () => {
       } catch (error) {
         console.error('Error updating meeting:', error);
       }
+    }
+  };
+
+  const handleViewDetails = async (meeting: any) => {
+    setSelectedMeeting(meeting);
+    setShowMeetingDetails(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (meetingToDelete) {
+      await deleteMeeting(meetingToDelete.id);
+      setMeetingToDelete(null);
     }
   };
 
@@ -340,9 +357,44 @@ const Index = () => {
                           <Progress value={meeting.meeting_insights[0].interest_score} className="h-2" />
                         </div>
                       )}
-                      <Button className="w-full" variant="outline" size="sm" disabled={meeting.status !== 'completed'}>
-                        {meeting.status === 'completed' ? 'Ver Insights' : 'Aguarde processamento'}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          className="flex-1" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleViewDetails(meeting)}
+                          disabled={meeting.status !== 'completed'}
+                        >
+                          {meeting.status === 'completed' ? 'Ver Detalhes' : 'Aguarde processamento'}
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setMeetingToDelete(meeting)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir Reunião</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir a reunião "{meeting.title}"? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel onClick={() => setMeetingToDelete(null)}>
+                                Cancelar
+                              </AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeleteConfirm}>
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -410,6 +462,18 @@ const Index = () => {
           </div>
         </section>
       </main>
+      
+      {/* Meeting Details Dialog */}
+      {selectedMeeting && (
+        <MeetingDetailsDialog
+          meeting={selectedMeeting}
+          transcription={selectedMeeting.transcription}
+          insights={selectedMeeting.meeting_insights?.[0]}
+          participants={selectedMeeting.meeting_participants}
+          open={showMeetingDetails}
+          onOpenChange={setShowMeetingDetails}
+        />
+      )}
     </div>
   );
 };
