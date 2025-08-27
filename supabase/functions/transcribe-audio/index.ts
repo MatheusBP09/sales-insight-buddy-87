@@ -50,6 +50,13 @@ serve(async (req) => {
     }
 
     console.log('Processing transcription for recording:', recordingId);
+    console.log('Audio data length:', audioData.length, 'characters');
+
+    // Check if OpenAI API key is available
+    const openAIKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIKey) {
+      throw new Error('OpenAI API key not configured');
+    }
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -75,13 +82,16 @@ serve(async (req) => {
     formData.append('language', 'pt');
 
     // Send to OpenAI Whisper API
+    console.log('Sending request to OpenAI Whisper API...');
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAIKey}`,
       },
       body: formData,
     });
+    
+    console.log('OpenAI API response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
