@@ -133,7 +133,11 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
 
   const uploadAudio = useCallback(async (recordingId: string, audioBlob: Blob, meetingId: string) => {
     try {
-      console.log('Uploading audio for meeting:', meetingId);
+      console.log('=== STARTING AUDIO UPLOAD ===');
+      console.log('Meeting ID:', meetingId);
+      console.log('Recording ID:', recordingId);
+      console.log('Audio blob size:', audioBlob.size, 'bytes');
+      console.log('Audio blob type:', audioBlob.type);
       setIsProcessing(true);
 
       // Get current user
@@ -141,9 +145,13 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
       if (!user) {
         throw new Error('User not authenticated');
       }
+      console.log('User authenticated:', user.id);
 
       // Upload to Supabase Storage
+      console.log('=== UPLOADING TO STORAGE ===');
       const fileName = `${user.id}/${recordingId}.webm`;
+      console.log('Storage file name:', fileName);
+      
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('meeting-recordings')
         .upload(fileName, audioBlob, {
@@ -153,13 +161,24 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
         });
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
+        console.error('=== STORAGE UPLOAD ERROR ===', uploadError);
         throw uploadError;
       }
 
-      console.log('Audio uploaded successfully:', uploadData.path);
+      console.log('=== STORAGE UPLOAD SUCCESS ===', uploadData.path);
 
       // Create recording record in database
+      console.log('=== CREATING RECORDING RECORD ===');
+      console.log('Recording data:', {
+        id: recordingId,
+        meeting_id: meetingId,
+        file_path: uploadData.path,
+        file_size: audioBlob.size,
+        duration_seconds: recordingTime,
+        format: 'webm',
+        status: 'uploaded'
+      });
+      
       const { data: recording, error: recordingError } = await supabase
         .from('recordings')
         .insert({
@@ -175,11 +194,11 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
         .single();
 
       if (recordingError) {
-        console.error('Recording database error:', recordingError);
+        console.error('=== RECORDING DATABASE ERROR ===', recordingError);
         throw recordingError;
       }
 
-      console.log('Recording record created:', recording.id);
+      console.log('=== RECORDING RECORD CREATED ===', recording.id);
 
       // Convert blob to base64 for transcription (improved for large files)
       const arrayBuffer = await audioBlob.arrayBuffer();
@@ -194,7 +213,9 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
       }
 
       // Start transcription process
-      console.log('Starting transcription...', 'Audio size:', base64Audio.length, 'chars');
+      console.log('=== STARTING TRANSCRIPTION ===');
+      console.log('Audio base64 size:', base64Audio.length, 'characters');
+      
       const { data: transcriptionResult, error: transcriptionError } = await supabase.functions
         .invoke('transcribe-audio', {
           body: {
@@ -204,7 +225,7 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
         });
 
       if (transcriptionError) {
-        console.error('Transcription error:', transcriptionError);
+        console.error('=== TRANSCRIPTION ERROR ===', transcriptionError);
         // Update recording status to failed
         await supabase
           .from('recordings')
@@ -212,6 +233,8 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
           .eq('id', recordingId);
         throw transcriptionError;
       }
+      
+      console.log('=== TRANSCRIPTION SUCCESS ===', transcriptionResult);
 
       console.log('Transcription completed successfully');
 
@@ -236,7 +259,11 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
       return recording;
 
     } catch (error) {
-      console.error('Error uploading audio:', error);
+      console.error('=== AUDIO UPLOAD ERROR ===', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       setIsProcessing(false);
       throw error;
     }
