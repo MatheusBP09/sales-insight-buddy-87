@@ -5,13 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Play, Pause, Square, Clock, Users, Target, TrendingUp, BarChart3, History, Mic } from "lucide-react";
+import { Play, Pause, Square, Clock, Users, Target, TrendingUp, BarChart3, History, Mic, LogOut } from "lucide-react";
 import { useAudioRecording } from "@/hooks/useAudioRecording";
 import { useMeetings } from "@/hooks/useMeetings";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
   const [meetingTitle, setMeetingTitle] = useState("");
   const [clientCompany, setClientCompany] = useState("");
   const [currentMeeting, setCurrentMeeting] = useState<any>(null);
@@ -145,13 +147,21 @@ const Index = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold">Sales Insight Buddy</h1>
-                <p className="text-sm text-muted-foreground">Análise Inteligente de Reuniões</p>
+                <p className="text-sm text-muted-foreground">
+                  Olá, {user?.user_metadata?.full_name || user?.email}
+                </p>
               </div>
             </div>
-            <Button variant="outline" size="sm">
-              <History className="w-4 h-4 mr-2" />
-              Histórico
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm">
+                <History className="w-4 h-4 mr-2" />
+                Histórico
+              </Button>
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            </div>
           </div>
         </div>
       </header>
