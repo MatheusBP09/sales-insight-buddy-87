@@ -300,6 +300,145 @@ export type Database = {
           },
         ]
       }
+      meeting_insights: {
+        Row: {
+          client_objections: string[] | null
+          commitments: string[] | null
+          created_at: string
+          id: string
+          interest_score: number | null
+          keywords: string[] | null
+          meeting_id: string
+          next_steps: string[] | null
+          opportunities: string[] | null
+          pain_points: string[] | null
+          risks: string[] | null
+          sentiment: string | null
+          updated_at: string
+          value_proposition: string | null
+        }
+        Insert: {
+          client_objections?: string[] | null
+          commitments?: string[] | null
+          created_at?: string
+          id?: string
+          interest_score?: number | null
+          keywords?: string[] | null
+          meeting_id: string
+          next_steps?: string[] | null
+          opportunities?: string[] | null
+          pain_points?: string[] | null
+          risks?: string[] | null
+          sentiment?: string | null
+          updated_at?: string
+          value_proposition?: string | null
+        }
+        Update: {
+          client_objections?: string[] | null
+          commitments?: string[] | null
+          created_at?: string
+          id?: string
+          interest_score?: number | null
+          keywords?: string[] | null
+          meeting_id?: string
+          next_steps?: string[] | null
+          opportunities?: string[] | null
+          pain_points?: string[] | null
+          risks?: string[] | null
+          sentiment?: string | null
+          updated_at?: string
+          value_proposition?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_insights_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_participants: {
+        Row: {
+          company: string | null
+          created_at: string
+          id: string
+          meeting_id: string
+          name: string
+          role: string | null
+          speaking_time_seconds: number | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          id?: string
+          meeting_id: string
+          name: string
+          role?: string | null
+          speaking_time_seconds?: number | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          name?: string
+          role?: string | null
+          speaking_time_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_participants_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          client_company: string | null
+          created_at: string
+          duration_seconds: number | null
+          end_time: string | null
+          id: string
+          meeting_type: string
+          start_time: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_company?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          end_time?: string | null
+          id?: string
+          meeting_type?: string
+          start_time?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_company?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          end_time?: string | null
+          id?: string
+          meeting_type?: string
+          start_time?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       personal_notes: {
         Row: {
           content: string | null
@@ -353,6 +492,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      recordings: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          file_path: string | null
+          file_size: number | null
+          format: string | null
+          id: string
+          meeting_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_path?: string | null
+          file_size?: number | null
+          format?: string | null
+          id?: string
+          meeting_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_path?: string | null
+          file_size?: number | null
+          format?: string | null
+          id?: string
+          meeting_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recordings_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       security_audit_log: {
         Row: {
@@ -475,6 +658,47 @@ export type Database = {
             columns: ["responsible_member_id"]
             isOneToOne: false
             referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transcriptions: {
+        Row: {
+          confidence_score: number | null
+          content: string | null
+          created_at: string
+          id: string
+          language: string | null
+          recording_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          language?: string | null
+          recording_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          confidence_score?: number | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          language?: string | null
+          recording_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcriptions_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
             referencedColumns: ["id"]
           },
         ]

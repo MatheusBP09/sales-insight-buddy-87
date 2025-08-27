@@ -1,27 +1,136 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mic, Users, BarChart3, History, Play, Pause, Square, Timer } from "lucide-react";
-import { mockMeetings, meetingTypes } from "@/data/mockData";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Play, Pause, Square, Clock, Users, Target, TrendingUp, BarChart3, History, Mic } from "lucide-react";
+import { useAudioRecording } from "@/hooks/useAudioRecording";
+import { useMeetings } from "@/hooks/useMeetings";
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
+  const { toast } = useToast();
+  const [meetingTitle, setMeetingTitle] = useState("");
+  const [clientCompany, setClientCompany] = useState("");
+  const [currentMeeting, setCurrentMeeting] = useState<any>(null);
+  
+  const { meetings, stats, loading: meetingsLoading, createMeeting, updateMeeting } = useMeetings();
+  
+  const {
+    isRecording,
+    isPaused,
+    recordingTime,
+    isProcessing,
+    startRecording,
+    pauseRecording,
+    resumeRecording,
+    stopRecording,
+    uploadAudio,
+    formatTime
+  } = useAudioRecording({
+    onRecordingComplete: handleRecordingComplete,
+    onError: (error) => {
+      toast({
+        title: "Erro na gravação",
+        description: error,
+        variant: "destructive"
+      });
+    }
+  });
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    setIsPaused(false);
+  async function handleRecordingComplete(recordingId: string, audioBlob: Blob) {
+    if (!currentMeeting) {
+      toast({
+        title: "Erro",
+        description: "Nenhuma reunião ativa encontrada",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await uploadAudio(recordingId, audioBlob, currentMeeting.id);
+      
+      toast({
+        title: "Gravação processada",
+        description: "A gravação foi transcrita e analisada com sucesso"
+      });
+      
+      setCurrentMeeting(null);
+      setMeetingTitle("");
+      setClientCompany("");
+      
+    } catch (error) {
+      console.error('Error processing recording:', error);
+      toast({
+        title: "Erro no processamento",
+        description: "Falha ao processar a gravação",
+        variant: "destructive"
+      });
+    }
+  }
+
+  const handleStartRecording = async () => {
+    if (!meetingTitle.trim()) {
+      toast({
+        title: "Título obrigatório",
+        description: "Por favor, insira um título para a reunião",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Create meeting record first
+      const meeting = await createMeeting(meetingTitle, clientCompany || undefined);
+      setCurrentMeeting(meeting);
+      
+      // Start audio recording
+      await startRecording();
+      
+      // Update meeting status to recording
+      await updateMeeting(meeting.id, { status: 'recording' });
+      
+      toast({
+        title: "Gravação iniciada",
+        description: "A reunião está sendo gravada"
+      });
+      
+    } catch (error) {
+      console.error('Error starting meeting:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao iniciar a reunião",
+        variant: "destructive"
+      });
+    }
   };
 
   const handlePauseRecording = () => {
-    setIsPaused(!isPaused);
+    if (isPaused) {
+      resumeRecording();
+    } else {
+      pauseRecording();
+    }
   };
 
-  const handleStopRecording = () => {
-    setIsRecording(false);
-    setIsPaused(false);
-    setRecordingTime(0);
+  const handleStopRecording = async () => {
+    stopRecording();
+    
+    if (currentMeeting) {
+      // Update meeting end time
+      try {
+        await updateMeeting(currentMeeting.id, {
+          end_time: new Date().toISOString(),
+          duration_seconds: recordingTime,
+          status: 'processing'
+        });
+      } catch (error) {
+        console.error('Error updating meeting:', error);
+      }
+    }
   };
 
   return (
@@ -31,15 +140,15 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
                 <Mic className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold gradient-text">Sales Insight Buddy</h1>
+                <h1 className="text-xl font-bold">Sales Insight Buddy</h1>
                 <p className="text-sm text-muted-foreground">Análise Inteligente de Reuniões</p>
               </div>
             </div>
-            <Button variant="professional" size="sm">
+            <Button variant="outline" size="sm">
               <History className="w-4 h-4 mr-2" />
               Histórico
             </Button>
@@ -47,63 +156,92 @@ const Index = () => {
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="container mx-auto px-4 py-8 space-y-8">
-        {/* Quick Actions */}
-        <section className="animate-fade-in">
-          <h2 className="text-2xl font-semibold mb-6">Iniciar Nova Reunião</h2>
-          <Card className="bg-gradient-card border-border shadow-brand">
+        {/* Recording Section */}
+        <section>
+          <Card className="max-w-2xl mx-auto">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center gap-2">
                 <Mic className="w-5 h-5 text-primary" />
-                <span>Gravação de Reunião</span>
+                Iniciar Nova Reunião
               </CardTitle>
+              <CardDescription>
+                Grave e analise suas reuniões de vendas automaticamente
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {!isRecording ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Título da Reunião</label>
-                      <input 
-                        className="w-full px-3 py-2 border border-input rounded-md bg-background"
-                        placeholder="Ex: Demo - TechCorp LTDA"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Cliente/Empresa</label>
-                      <input 
-                        className="w-full px-3 py-2 border border-input rounded-md bg-background"
-                        placeholder="Ex: TechCorp LTDA"
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="meeting-title">Título da Reunião</Label>
+                    <Input 
+                      id="meeting-title" 
+                      placeholder="Ex: Reunião com Cliente ABC"
+                      value={meetingTitle}
+                      onChange={(e) => setMeetingTitle(e.target.value)}
+                    />
                   </div>
-                  <Button onClick={handleStartRecording} size="xl" className="w-full">
-                    <Mic className="w-5 h-5 mr-2" />
-                    Iniciar Gravação
+                  <div className="space-y-2">
+                    <Label htmlFor="client-company">Cliente/Empresa</Label>
+                    <Input 
+                      id="client-company" 
+                      placeholder="Ex: Empresa XYZ Ltda"
+                      value={clientCompany}
+                      onChange={(e) => setClientCompany(e.target.value)}
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleStartRecording}
+                    className="w-full bg-primary hover:bg-primary/90"
+                    size="lg"
+                    disabled={isProcessing}
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    {isProcessing ? "Processando..." : "Iniciar Gravação"}
                   </Button>
                 </div>
               ) : (
-                <div className="text-center space-y-6">
-                  <div className="flex items-center justify-center space-x-4">
-                    <div className="w-4 h-4 bg-recording rounded-full animate-recording"></div>
-                    <span className="text-lg font-medium">Gravando...</span>
-                    <div className="flex items-center space-x-1 text-muted-foreground">
-                      <Timer className="w-4 h-4" />
-                      <span>{Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, '0')}</span>
-                    </div>
+                <div className="text-center space-y-4">
+                  <div className="text-4xl font-mono text-primary">
+                    {formatTime(recordingTime)}
                   </div>
-                  <div className="flex justify-center space-x-4">
+                  <div className="text-sm text-muted-foreground">
+                    {isPaused ? "Gravação pausada" : "Gravando..."}
+                  </div>
+                  {currentMeeting && (
+                    <div className="text-sm text-muted-foreground">
+                      <strong>{currentMeeting.title}</strong>
+                      {currentMeeting.client_company && (
+                        <> - {currentMeeting.client_company}</>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex gap-2 justify-center">
                     <Button 
-                      variant={isPaused ? "default" : "secondary"} 
                       onClick={handlePauseRecording}
+                      variant="outline"
+                      size="sm"
+                      disabled={isProcessing}
                     >
                       {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                      {isPaused ? "Retomar" : "Pausar"}
                     </Button>
-                    <Button variant="destructive" onClick={handleStopRecording}>
+                    <Button 
+                      onClick={handleStopRecording}
+                      variant="destructive"
+                      size="sm"
+                      disabled={isProcessing}
+                    >
                       <Square className="w-4 h-4 mr-2" />
-                      Parar
+                      {isProcessing ? "Processando..." : "Parar"}
                     </Button>
                   </div>
+                  {isProcessing && (
+                    <div className="text-sm text-muted-foreground">
+                      Processando gravação... Isso pode levar alguns momentos.
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -111,88 +249,152 @@ const Index = () => {
         </section>
 
         {/* Recent Meetings */}
-        <section className="animate-slide-up">
-          <h2 className="text-2xl font-semibold mb-6">Reuniões Recentes</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockMeetings.slice(0, 3).map((meeting) => (
-              <Card key={meeting.id} className="hover:shadow-lg transition-all duration-300 cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{meeting.title}</CardTitle>
-                    <div className={`w-3 h-3 rounded-full ${meetingTypes.find(t => t.value === meeting.type)?.color}`}></div>
-                  </div>
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                    <span>{new Date(meeting.date).toLocaleDateString('pt-BR')}</span>
-                    <span>{meeting.duration}min</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">{meeting.participants.length} participantes</span>
-                    </div>
-                    {meeting.insights && (
-                      <div className="flex items-center space-x-2">
-                        <BarChart3 className="w-4 h-4 text-success" />
-                        <span className="text-sm">Score: {meeting.insights.interestScore}/10</span>
-                      </div>
-                    )}
-                    <Button variant="outline" size="sm" className="w-full">
-                      Ver Insights
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Reuniões Recentes</h2>
+            <Button variant="outline" size="sm">
+              <History className="w-4 h-4 mr-2" />
+              Ver Todas
+            </Button>
           </div>
+          
+          {meetingsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="h-3 bg-muted rounded"></div>
+                      <div className="h-3 bg-muted rounded"></div>
+                      <div className="h-8 bg-muted rounded"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : meetings.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <p className="text-muted-foreground">Nenhuma reunião encontrada</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Comece gravando sua primeira reunião de vendas
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {meetings.slice(0, 3).map((meeting) => (
+                <Card key={meeting.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{meeting.title}</CardTitle>
+                      <Badge variant={
+                        meeting.status === "completed" ? "default" :
+                        meeting.status === "processing" ? "secondary" :
+                        meeting.status === "recording" ? "outline" : "default"
+                      }>
+                        {meeting.status === "completed" ? "Concluída" :
+                         meeting.status === "processing" ? "Processando" :
+                         meeting.status === "recording" ? "Gravando" : meeting.status}
+                      </Badge>
+                    </div>
+                    <CardDescription>
+                      {meeting.client_company && `${meeting.client_company} • `}
+                      {new Date(meeting.created_at).toLocaleDateString('pt-BR')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {meeting.duration_seconds && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="w-4 h-4" />
+                          {Math.round(meeting.duration_seconds / 60)} min
+                        </div>
+                      )}
+                      {meeting.meeting_participants && meeting.meeting_participants.length > 0 && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Users className="w-4 h-4" />
+                          {meeting.meeting_participants.length} participantes
+                        </div>
+                      )}
+                      {meeting.meeting_insights?.[0]?.interest_score && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span>Score de Interesse</span>
+                            <span className="font-medium">{meeting.meeting_insights[0].interest_score}%</span>
+                          </div>
+                          <Progress value={meeting.meeting_insights[0].interest_score} className="h-2" />
+                        </div>
+                      )}
+                      <Button className="w-full" variant="outline" size="sm" disabled={meeting.status !== 'completed'}>
+                        {meeting.status === 'completed' ? 'Ver Insights' : 'Aguarde processamento'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* Stats */}
-        <section className="animate-slide-up">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Statistics */}
+        <section>
+          <h2 className="text-2xl font-bold mb-6">Estatísticas</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-2">
-                  <Mic className="w-8 h-8 text-primary" />
-                  <div>
-                    <p className="text-2xl font-bold">12</p>
-                    <p className="text-sm text-muted-foreground">Reuniões este mês</p>
-                  </div>
-                </div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total de reuniões</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalMeetings}</div>
+                <p className="text-xs text-muted-foreground">
+                  Reuniões gravadas
+                </p>
               </CardContent>
             </Card>
+
             <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-2">
-                  <BarChart3 className="w-8 h-8 text-success" />
-                  <div>
-                    <p className="text-2xl font-bold">7.8</p>
-                    <p className="text-sm text-muted-foreground">Score médio</p>
-                  </div>
-                </div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Score médio</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.averageScore}%</div>
+                <p className="text-xs text-muted-foreground">
+                  Interesse dos clientes
+                </p>
               </CardContent>
             </Card>
+
             <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-2">
-                  <Users className="w-8 h-8 text-warning" />
-                  <div>
-                    <p className="text-2xl font-bold">85%</p>
-                    <p className="text-sm text-muted-foreground">Taxa conversão</p>
-                  </div>
-                </div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Taxa de conclusão</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.conversionRate}%</div>
+                <p className="text-xs text-muted-foreground">
+                  Reuniões processadas
+                </p>
               </CardContent>
             </Card>
+
             <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-2">
-                  <Timer className="w-8 h-8 text-primary" />
-                  <div>
-                    <p className="text-2xl font-bold">45min</p>
-                    <p className="text-sm text-muted-foreground">Duração média</p>
-                  </div>
-                </div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Duração média</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.averageDuration} min</div>
+                <p className="text-xs text-muted-foreground">
+                  Tempo por reunião
+                </p>
               </CardContent>
             </Card>
           </div>
