@@ -63,14 +63,23 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
 
       mediaRecorder.onstop = async () => {
         console.log('Recording stopped, processing audio...');
+        console.log('Final recording time:', recordingTime, 'seconds');
         setIsProcessing(true);
         
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
         console.log('Audio blob created, size:', audioBlob.size);
 
+        if (audioBlob.size === 0) {
+          console.error('Audio blob is empty!');
+          onError?.('Gravação vazia - tente novamente');
+          setIsProcessing(false);
+          return;
+        }
+
         if (onRecordingComplete) {
           // Create a recording ID for tracking
           const recordingId = crypto.randomUUID();
+          console.log('Calling onRecordingComplete with:', { recordingId, blobSize: audioBlob.size });
           onRecordingComplete(recordingId, audioBlob);
         }
 
@@ -128,17 +137,27 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
     setIsRecording(false);
     setIsPaused(false);
     stopTimer();
-    setRecordingTime(0);
+    // Don't reset recordingTime here - it will be used in uploadAudio
+    // setRecordingTime(0) will be called after successful upload
   }, []);
 
-  const uploadAudio = useCallback(async (recordingId: string, audioBlob: Blob, meetingId: string) => {
+  const uploadAudio = useCallback(async (recordingId: string, audioBlob: Blob, meetingId: string, retryCount = 0) => {
+    const MAX_RETRIES = 3;
+    
     try {
       console.log('=== STARTING AUDIO UPLOAD ===');
       console.log('Meeting ID:', meetingId);
       console.log('Recording ID:', recordingId);
       console.log('Audio blob size:', audioBlob.size, 'bytes');
       console.log('Audio blob type:', audioBlob.type);
+      console.log('Current recording time:', recordingTime, 'seconds');
+      console.log('Retry attempt:', retryCount);
       setIsProcessing(true);
+
+      // Validate inputs
+      if (!meetingId || !recordingId || !audioBlob || audioBlob.size === 0) {
+        throw new Error(`Invalid parameters: meetingId=${meetingId}, recordingId=${recordingId}, blobSize=${audioBlob?.size}`);
+      }
 
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
@@ -146,6 +165,12 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
         throw new Error('User not authenticated');
       }
       console.log('User authenticated:', user.id);
+
+      // Check if storage bucket exists (and create if needed)
+      console.log('=== CHECKING STORAGE BUCKET ===');
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const bucketExists = buckets?.some(bucket => bucket.name === 'meeting-recordings');
+      console.log('Meeting-recordings bucket exists:', bucketExists);
 
       // Upload to Supabase Storage
       console.log('=== UPLOADING TO STORAGE ===');
@@ -162,6 +187,12 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
 
       if (uploadError) {
         console.error('=== STORAGE UPLOAD ERROR ===', uploadError);
+        
+        // If bucket doesn't exist, provide helpful error
+        if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
+          throw new Error('Storage bucket not configured. Please contact support.');
+        }
+        
         throw uploadError;
       }
 
@@ -200,16 +231,37 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
 
       console.log('=== RECORDING RECORD CREATED ===', recording.id);
 
-      // Convert blob to base64 for transcription (improved for large files)
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      
-      // Convert to base64 in chunks to avoid call stack issues
+      // Convert blob to base64 for transcription (robust implementation)
+      console.log('=== CONVERTING TO BASE64 ===');
       let base64Audio = '';
-      const chunkSize = 8192;
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.slice(i, i + chunkSize);
-        base64Audio += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+      
+      try {
+        const arrayBuffer = await audioBlob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        console.log('Array buffer size:', arrayBuffer.byteLength);
+        
+        // Convert to base64 in small chunks to avoid call stack issues
+        const chunkSize = 1024; // Smaller chunks for safety
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+          try {
+            const chunk = uint8Array.slice(i, i + chunkSize);
+            const chunkString = Array.from(chunk, byte => String.fromCharCode(byte)).join('');
+            base64Audio += btoa(chunkString);
+            
+            // Log progress for large files
+            if (i % (chunkSize * 100) === 0) {
+              console.log(`Base64 conversion progress: ${((i / uint8Array.length) * 100).toFixed(1)}%`);
+            }
+          } catch (chunkError) {
+            console.error('Error processing chunk at position', i, chunkError);
+            throw new Error(`Base64 conversion failed at position ${i}: ${chunkError.message}`);
+          }
+        }
+        
+        console.log('Base64 conversion completed, size:', base64Audio.length, 'characters');
+      } catch (conversionError) {
+        console.error('=== BASE64 CONVERSION ERROR ===', conversionError);
+        throw new Error(`Failed to convert audio to base64: ${conversionError.message}`);
       }
 
       // Start transcription process
@@ -255,6 +307,8 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
         console.log('Meeting analysis completed successfully');
       }
 
+      // Reset recording time only after successful completion
+      setRecordingTime(0);
       setIsProcessing(false);
       return recording;
 
@@ -262,9 +316,29 @@ export const useAudioRecording = ({ onRecordingComplete, onError }: UseAudioReco
       console.error('=== AUDIO UPLOAD ERROR ===', error);
       console.error('Error details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
+        meetingId,
+        recordingId,
+        audioSize: audioBlob.size
       });
+      
       setIsProcessing(false);
+      
+      // Retry mechanism for transient errors
+      if (retryCount < MAX_RETRIES) {
+        const isRetryableError = 
+          error.message?.includes('network') ||
+          error.message?.includes('timeout') ||
+          error.message?.includes('fetch') ||
+          error.message?.includes('connection');
+          
+        if (isRetryableError) {
+          console.log(`Retrying upload (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+          return uploadAudio(recordingId, audioBlob, meetingId, retryCount + 1);
+        }
+      }
+      
       throw error;
     }
   }, [recordingTime]);
