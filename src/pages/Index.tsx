@@ -48,34 +48,63 @@ const Index = () => {
   });
 
   async function handleRecordingComplete(recordingId: string, audioBlob: Blob) {
+    console.log('=== RECORDING COMPLETE CALLBACK ===');
+    console.log('Current meeting at callback:', currentMeeting);
+    console.log('Recording ID:', recordingId);
+    console.log('Audio blob size:', audioBlob.size);
+    
     if (!currentMeeting) {
+      console.error('=== NO CURRENT MEETING ERROR ===');
+      console.error('currentMeeting is null/undefined when trying to process recording');
       toast({
-        title: "Erro",
-        description: "Nenhuma reunião ativa encontrada",
+        title: "Erro crítico",
+        description: "Nenhuma reunião ativa encontrada. A gravação pode ter sido perdida.",
         variant: "destructive"
       });
       return;
     }
 
+    const meetingId = currentMeeting.id;
+    console.log('Processing recording for meeting:', meetingId);
+
     try {
-      await uploadAudio(recordingId, audioBlob, currentMeeting.id);
+      console.log('=== STARTING UPLOAD PROCESS ===');
+      await uploadAudio(recordingId, audioBlob, meetingId);
       
+      console.log('=== UPLOAD SUCCESSFUL ===');
       toast({
         title: "Gravação processada",
         description: "A gravação foi transcrita e analisada com sucesso"
       });
       
+      // Only clear state after successful processing
       setCurrentMeeting(null);
       setMeetingTitle("");
       setClientCompany("");
       
     } catch (error) {
-      console.error('Error processing recording:', error);
+      console.error('=== RECORDING PROCESSING ERROR ===', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        meetingId,
+        recordingId,
+        currentMeeting: currentMeeting?.id
+      });
+      
       toast({
         title: "Erro no processamento",
-        description: "Falha ao processar a gravação",
+        description: `Falha ao processar a gravação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         variant: "destructive"
       });
+
+      // Try to update meeting status to failed
+      try {
+        if (currentMeeting?.id) {
+          await updateMeeting(currentMeeting.id, { status: 'failed' });
+        }
+      } catch (updateError) {
+        console.error('Failed to update meeting status to failed:', updateError);
+      }
     }
   }
 
@@ -124,19 +153,51 @@ const Index = () => {
   };
 
   const handleStopRecording = async () => {
+    console.log('=== STOPPING RECORDING ===');
+    console.log('Current meeting before stop:', currentMeeting);
+    console.log('Recording time:', recordingTime);
+    
+    if (!currentMeeting) {
+      console.error('=== NO CURRENT MEETING ON STOP ===');
+      toast({
+        title: "Erro",
+        description: "Nenhuma reunião ativa para parar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Store meeting info before stopping (to avoid race conditions)
+    const meetingToUpdate = { ...currentMeeting };
+    const finalRecordingTime = recordingTime;
+    
+    console.log('Stopping recording for meeting:', meetingToUpdate.id);
+    
+    // Stop the actual recording
     stopRecording();
     
-    if (currentMeeting) {
-      // Update meeting end time
-      try {
-        await updateMeeting(currentMeeting.id, {
-          end_time: new Date().toISOString(),
-          duration_seconds: recordingTime,
-          status: 'processing'
-        });
-      } catch (error) {
-        console.error('Error updating meeting:', error);
-      }
+    // Update meeting with end time and processing status
+    try {
+      console.log('Updating meeting status to processing...');
+      await updateMeeting(meetingToUpdate.id, {
+        end_time: new Date().toISOString(),
+        duration_seconds: finalRecordingTime,
+        status: 'processing'
+      });
+      console.log('Meeting status updated successfully');
+      
+      toast({
+        title: "Processando gravação",
+        description: "A gravação está sendo processada. Aguarde alguns momentos.",
+      });
+      
+    } catch (error) {
+      console.error('=== ERROR UPDATING MEETING ===', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar status da reunião",
+        variant: "destructive"
+      });
     }
   };
 
