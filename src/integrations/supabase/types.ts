@@ -363,6 +363,7 @@ export type Database = {
         Row: {
           company: string | null
           created_at: string
+          email: string | null
           id: string
           meeting_id: string
           name: string
@@ -372,6 +373,7 @@ export type Database = {
         Insert: {
           company?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           meeting_id: string
           name: string
@@ -381,6 +383,7 @@ export type Database = {
         Update: {
           company?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           meeting_id?: string
           name?: string
@@ -400,41 +403,62 @@ export type Database = {
       meetings: {
         Row: {
           client_company: string | null
+          corrected_transcript: string | null
           created_at: string
           duration_seconds: number | null
           end_time: string | null
+          executive_summary: string | null
+          external_meeting_id: string | null
           id: string
+          join_url: string | null
           meeting_type: string
+          processed_at: string | null
+          raw_content: string | null
           start_time: string | null
           status: string
           title: string
           updated_at: string
+          user_email: string | null
           user_id: string
         }
         Insert: {
           client_company?: string | null
+          corrected_transcript?: string | null
           created_at?: string
           duration_seconds?: number | null
           end_time?: string | null
+          executive_summary?: string | null
+          external_meeting_id?: string | null
           id?: string
+          join_url?: string | null
           meeting_type?: string
+          processed_at?: string | null
+          raw_content?: string | null
           start_time?: string | null
           status?: string
           title: string
           updated_at?: string
+          user_email?: string | null
           user_id: string
         }
         Update: {
           client_company?: string | null
+          corrected_transcript?: string | null
           created_at?: string
           duration_seconds?: number | null
           end_time?: string | null
+          executive_summary?: string | null
+          external_meeting_id?: string | null
           id?: string
+          join_url?: string | null
           meeting_type?: string
+          processed_at?: string | null
+          raw_content?: string | null
           start_time?: string | null
           status?: string
           title?: string
           updated_at?: string
+          user_email?: string | null
           user_id?: string
         }
         Relationships: []

@@ -12,15 +12,29 @@ interface Meeting {
   end_time?: string;
   duration_seconds?: number;
   created_at: string;
+  external_meeting_id?: string;
+  user_email?: string;
+  join_url?: string;
+  raw_content?: string;
+  corrected_transcript?: string;
+  executive_summary?: string;
+  processed_at?: string;
   meeting_insights?: Array<{
     interest_score?: number;
     sentiment?: string;
     keywords?: string[];
+    opportunities?: string[];
+    commitments?: string[];
+    next_steps?: string[];
+    pain_points?: string[];
+    risks?: string[];
+    value_proposition?: string;
   }>;
   meeting_participants?: Array<{
     name: string;
     role?: string;
     company?: string;
+    email?: string;
   }>;
 }
 
@@ -60,12 +74,19 @@ export const useMeetings = () => {
           meeting_insights (
             interest_score,
             sentiment,
-            keywords
+            keywords,
+            opportunities,
+            commitments,
+            next_steps,
+            pain_points,
+            risks,
+            value_proposition
           ),
           meeting_participants (
             name,
             role,
-            company
+            company,
+            email
           )
         `)
         .eq('user_id', user.id)
