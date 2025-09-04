@@ -26,7 +26,38 @@ serve(async (req) => {
     const payload = await req.json();
     console.log('Received payload:', JSON.stringify(payload, null, 2));
 
-    // Extract data from webhook payload
+    // Extract data from webhook payload - handle n8n format (Body) and other formats (body)
+    let meetingData;
+    if (payload.Body) {
+      console.log('Using n8n format (payload.Body)');
+      meetingData = payload.Body;
+    } else if (payload.body) {
+      console.log('Using standard format (payload.body)');
+      meetingData = payload.body;
+    } else {
+      console.log('Using direct payload format');
+      meetingData = payload;
+    }
+
+    console.log('Extracted meeting data:', JSON.stringify(meetingData, null, 2));
+
+    // Validate required fields
+    const requiredFields = ['id', 'user_email', 'subject', 'start_time', 'end_time'];
+    const missingFields = requiredFields.filter(field => !meetingData[field]);
+    
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required fields', 
+          missing_fields: missingFields,
+          received_data: Object.keys(meetingData)
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Extract data from meeting data
     const {
       id: externalMeetingId,
       user_email,
@@ -40,7 +71,7 @@ serve(async (req) => {
       corrected_transcript,
       executive_summary,
       processed_at
-    } = payload.body;
+    } = meetingData;
 
     // Find user by email to get user_id
     const { data: profiles } = await supabase
