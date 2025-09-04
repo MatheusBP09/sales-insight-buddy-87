@@ -97,7 +97,7 @@ serve(async (req) => {
     const durationSeconds = Math.floor((endDate.getTime() - startDate.getTime()) / 1000);
 
     // Create or update meeting record
-    const meetingData = {
+    const meetingRecord = {
       user_id: userId,
       user_email,
       external_meeting_id: externalMeetingId,
@@ -114,11 +114,11 @@ serve(async (req) => {
       processed_at: new Date().toISOString()
     };
 
-    console.log('Creating meeting with data:', meetingData);
+    console.log('Creating meeting with data:', meetingRecord);
 
     const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
-      .upsert(meetingData, { 
+      .upsert(meetingRecord, { 
         onConflict: 'external_meeting_id',
         ignoreDuplicates: false 
       })
