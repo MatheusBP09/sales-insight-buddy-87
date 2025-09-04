@@ -35,6 +35,10 @@ interface MeetingDetailsProps {
     duration_seconds?: number;
     status: string;
     meeting_type: string;
+    attachment_docx_url?: string;
+    attachment_vtt_url?: string;
+    attachment_docx_name?: string;
+    attachment_vtt_name?: string;
   };
   transcription?: string;
   insights?: MeetingInsights;
@@ -279,8 +283,71 @@ export function MeetingDetailsDialog({
               </Card>
             )}
 
+            {/* Attachments */}
+            {(meeting.attachment_docx_url || meeting.attachment_vtt_url) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                    Anexos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {meeting.attachment_docx_url && (
+                    <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                          <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{meeting.attachment_docx_name || 'Documento.docx'}</p>
+                          <p className="text-xs text-muted-foreground">Documento Word</p>
+                        </div>
+                      </div>
+                      <a 
+                        href={meeting.attachment_docx_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        Baixar
+                      </a>
+                    </div>
+                  )}
+                  
+                  {meeting.attachment_vtt_url && (
+                    <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-purple-100 rounded flex items-center justify-center">
+                          <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{meeting.attachment_vtt_name || 'Legenda.vtt'}</p>
+                          <p className="text-xs text-muted-foreground">Arquivo de Legenda</p>
+                        </div>
+                      </div>
+                      <a 
+                        href={meeting.attachment_vtt_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+                      >
+                        Baixar
+                      </a>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* No data message */}
-            {!transcription && !insights && (
+            {!transcription && !insights && !meeting.attachment_docx_url && !meeting.attachment_vtt_url && (
               <Card>
                 <CardContent className="pt-6 text-center text-muted-foreground">
                   <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />

@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { MeetingDetailsDialog } from "@/components/MeetingDetailsDialog";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { MeetingsFilter } from "@/components/MeetingsFilter";
+import { CreateMeetingDialog } from "@/components/CreateMeetingDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -235,16 +236,17 @@ const Index = () => {
 
             {/* Meetings List */}
             <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">
-                  Reuniões {filteredMeetings.length !== meetings.length && `(${filteredMeetings.length} de ${meetings.length})`}
-                </h2>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    {filteredMeetings.length} resultados
-                  </Badge>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">
+                    Reuniões {filteredMeetings.length !== meetings.length && `(${filteredMeetings.length} de ${meetings.length})`}
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-xs">
+                      {filteredMeetings.length} resultados
+                    </Badge>
+                    <CreateMeetingDialog />
+                  </div>
                 </div>
-              </div>
               
               {meetingsLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

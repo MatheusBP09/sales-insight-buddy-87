@@ -19,6 +19,10 @@ interface Meeting {
   corrected_transcript?: string;
   executive_summary?: string;
   processed_at?: string;
+  attachment_docx_url?: string;
+  attachment_vtt_url?: string;
+  attachment_docx_name?: string;
+  attachment_vtt_name?: string;
   meeting_insights?: Array<{
     interest_score?: number;
     sentiment?: string;
@@ -144,23 +148,41 @@ export const useMeetings = () => {
     }
   };
 
-  const createMeeting = async (title: string, clientCompany?: string, meetingType: string = 'sales_call') => {
+  const createMeeting = async (
+    title: string, 
+    clientCompany?: string, 
+    meetingType: string = 'sales_call',
+    additionalData?: {
+      start_time?: string;
+      end_time?: string;
+      join_url?: string;
+      executive_summary?: string;
+      status?: string;
+      attachment_docx_url?: string;
+      attachment_vtt_url?: string;
+      attachment_docx_name?: string;
+      attachment_vtt_name?: string;
+    }
+  ) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('User not authenticated');
       }
 
+      const meetingData = {
+        user_id: user.id,
+        title: title.trim(),
+        client_company: clientCompany?.trim() || null,
+        meeting_type: meetingType,
+        status: additionalData?.status || 'scheduled',
+        start_time: additionalData?.start_time || new Date().toISOString(),
+        ...additionalData
+      };
+
       const { data: meeting, error } = await supabase
         .from('meetings')
-        .insert({
-          user_id: user.id,
-          title: title.trim(),
-          client_company: clientCompany?.trim() || null,
-          meeting_type: meetingType,
-          status: 'scheduled',
-          start_time: new Date().toISOString()
-        })
+        .insert(meetingData)
         .select()
         .single();
 

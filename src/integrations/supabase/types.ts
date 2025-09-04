@@ -402,6 +402,10 @@ export type Database = {
       }
       meetings: {
         Row: {
+          attachment_docx_name: string | null
+          attachment_docx_url: string | null
+          attachment_vtt_name: string | null
+          attachment_vtt_url: string | null
           client_company: string | null
           corrected_transcript: string | null
           created_at: string
@@ -422,6 +426,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachment_docx_name?: string | null
+          attachment_docx_url?: string | null
+          attachment_vtt_name?: string | null
+          attachment_vtt_url?: string | null
           client_company?: string | null
           corrected_transcript?: string | null
           created_at?: string
@@ -442,6 +450,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachment_docx_name?: string | null
+          attachment_docx_url?: string | null
+          attachment_vtt_name?: string | null
+          attachment_vtt_url?: string | null
           client_company?: string | null
           corrected_transcript?: string | null
           created_at?: string
