@@ -3,6 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { Dashboard } from "@/components/Dashboard";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -26,7 +29,16 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
     return <Auth />;
   }
 
-  return <>{children}</>;
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AppSidebar />
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
+      </div>
+    </SidebarProvider>
+  );
 };
 
 const App = () => (
@@ -38,6 +50,11 @@ const App = () => (
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/" element={
+            <AuthWrapper>
+              <Dashboard />
+            </AuthWrapper>
+          } />
+          <Route path="/meetings" element={
             <AuthWrapper>
               <Index />
             </AuthWrapper>

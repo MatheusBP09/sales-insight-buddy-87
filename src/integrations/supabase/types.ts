@@ -354,6 +354,62 @@ export type Database = {
           },
         ]
       }
+      meeting_analytics: {
+        Row: {
+          action_items_identified: number | null
+          agenda_followed: boolean | null
+          average_sentence_length: number | null
+          created_at: string
+          decision_points: number | null
+          follow_up_scheduled: boolean | null
+          id: string
+          meeting_id: string
+          next_steps_defined: boolean | null
+          objections_handled: number | null
+          questions_asked: number | null
+          total_words: number | null
+          updated_at: string
+        }
+        Insert: {
+          action_items_identified?: number | null
+          agenda_followed?: boolean | null
+          average_sentence_length?: number | null
+          created_at?: string
+          decision_points?: number | null
+          follow_up_scheduled?: boolean | null
+          id?: string
+          meeting_id: string
+          next_steps_defined?: boolean | null
+          objections_handled?: number | null
+          questions_asked?: number | null
+          total_words?: number | null
+          updated_at?: string
+        }
+        Update: {
+          action_items_identified?: number | null
+          agenda_followed?: boolean | null
+          average_sentence_length?: number | null
+          created_at?: string
+          decision_points?: number | null
+          follow_up_scheduled?: boolean | null
+          id?: string
+          meeting_id?: string
+          next_steps_defined?: boolean | null
+          objections_handled?: number | null
+          questions_asked?: number | null
+          total_words?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_analytics_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_insights: {
         Row: {
           client_objections: string[] | null
@@ -413,6 +469,44 @@ export type Database = {
           },
         ]
       }
+      meeting_keywords: {
+        Row: {
+          category: string | null
+          created_at: string
+          frequency: number | null
+          id: string
+          keyword: string
+          meeting_id: string
+          relevance_score: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          frequency?: number | null
+          id?: string
+          keyword: string
+          meeting_id: string
+          relevance_score?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          frequency?: number | null
+          id?: string
+          keyword?: string
+          meeting_id?: string
+          relevance_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_keywords_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_participants: {
         Row: {
           company: string | null
@@ -460,72 +554,102 @@ export type Database = {
           attachment_docx_url: string | null
           attachment_vtt_name: string | null
           attachment_vtt_url: string | null
+          business_unit: string | null
           client_company: string | null
           corrected_transcript: string | null
           created_at: string
           duration_seconds: number | null
           end_time: string | null
+          engagement_score: number | null
           executive_summary: string | null
           external_meeting_id: string | null
+          external_participant_count: number | null
           id: string
           join_url: string | null
           meeting_type: string
+          organizer_email: string | null
+          organizer_name: string | null
+          playbook_score: number | null
           processed_at: string | null
+          quality_score: number | null
           raw_content: string | null
+          sentiment_score: number | null
           start_time: string | null
           status: string
           title: string
+          total_participant_count: number | null
           updated_at: string
           user_email: string | null
           user_id: string
+          word_count: number | null
         }
         Insert: {
           attachment_docx_name?: string | null
           attachment_docx_url?: string | null
           attachment_vtt_name?: string | null
           attachment_vtt_url?: string | null
+          business_unit?: string | null
           client_company?: string | null
           corrected_transcript?: string | null
           created_at?: string
           duration_seconds?: number | null
           end_time?: string | null
+          engagement_score?: number | null
           executive_summary?: string | null
           external_meeting_id?: string | null
+          external_participant_count?: number | null
           id?: string
           join_url?: string | null
           meeting_type?: string
+          organizer_email?: string | null
+          organizer_name?: string | null
+          playbook_score?: number | null
           processed_at?: string | null
+          quality_score?: number | null
           raw_content?: string | null
+          sentiment_score?: number | null
           start_time?: string | null
           status?: string
           title: string
+          total_participant_count?: number | null
           updated_at?: string
           user_email?: string | null
           user_id: string
+          word_count?: number | null
         }
         Update: {
           attachment_docx_name?: string | null
           attachment_docx_url?: string | null
           attachment_vtt_name?: string | null
           attachment_vtt_url?: string | null
+          business_unit?: string | null
           client_company?: string | null
           corrected_transcript?: string | null
           created_at?: string
           duration_seconds?: number | null
           end_time?: string | null
+          engagement_score?: number | null
           executive_summary?: string | null
           external_meeting_id?: string | null
+          external_participant_count?: number | null
           id?: string
           join_url?: string | null
           meeting_type?: string
+          organizer_email?: string | null
+          organizer_name?: string | null
+          playbook_score?: number | null
           processed_at?: string | null
+          quality_score?: number | null
           raw_content?: string | null
+          sentiment_score?: number | null
           start_time?: string | null
           status?: string
           title?: string
+          total_participant_count?: number | null
           updated_at?: string
           user_email?: string | null
           user_id?: string
+          word_count?: number | null
         }
         Relationships: []
       }
@@ -556,28 +680,88 @@ export type Database = {
         }
         Relationships: []
       }
+      playbook_rules: {
+        Row: {
+          business_unit: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          keywords: string[] | null
+          max_score: number | null
+          meeting_type: string
+          min_score: number | null
+          rule_description: string | null
+          rule_name: string
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          business_unit?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          max_score?: number | null
+          meeting_type: string
+          min_score?: number | null
+          rule_description?: string | null
+          rule_name: string
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          business_unit?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          max_score?: number | null
+          meeting_type?: string
+          min_score?: number | null
+          rule_description?: string | null
+          rule_name?: string
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          avatar_url: string | null
+          business_unit: string | null
           created_at: string
+          department: string | null
           email: string
           full_name: string | null
           id: string
+          phone: string | null
+          role: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
+          business_unit?: string | null
           created_at?: string
+          department?: string | null
           email: string
           full_name?: string | null
           id?: string
+          phone?: string | null
+          role?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
+          business_unit?: string | null
           created_at?: string
+          department?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          phone?: string | null
+          role?: string | null
           updated_at?: string
           user_id?: string
         }
