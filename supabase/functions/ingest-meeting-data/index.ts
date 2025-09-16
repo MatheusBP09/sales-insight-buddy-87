@@ -44,10 +44,18 @@ serve(async (req) => {
 
     // Parse request body
     const payload = await req.json();
-    console.log('Received payload:', JSON.stringify(payload, null, 2));
+    console.log('=== RAW PAYLOAD RECEIVED ===');
+    console.log('Payload type:', typeof payload);
+    console.log('Is array:', Array.isArray(payload));
+    console.log('Payload content:', JSON.stringify(payload, null, 2));
+    console.log('=== END RAW PAYLOAD ===');
 
     // Handle array payload (from n8n)
     const meetingData: MeetingPayload = Array.isArray(payload) ? payload[0] : payload;
+    console.log('=== EXTRACTED MEETING DATA ===');
+    console.log('Meeting data:', JSON.stringify(meetingData, null, 2));
+    console.log('Available fields:', Object.keys(meetingData || {}));
+    console.log('=== END MEETING DATA ===');
     
     // Validate required fields
     const requiredFields = ['meeting_id', 'title', 'organizer', 'attendees', 'transcript_segments'];
