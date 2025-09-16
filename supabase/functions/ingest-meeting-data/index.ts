@@ -149,42 +149,87 @@ serve(async (req) => {
     const endTime = meetingData.end_time ? new Date(meetingData.end_time) : null;
     const duration = startTime && endTime ? Math.round((endTime.getTime() - startTime.getTime()) / 1000) : null;
 
-    // Create meeting record
-    const meetingRecord = {
-      id: crypto.randomUUID(), // Generate new UUID for internal use
-      user_id: userId,
-      external_meeting_id: meetingData.meeting_id,
-      title: meetingData.title,
-      start_time: startTime?.toISOString(),
-      end_time: endTime?.toISOString(),
-      duration_seconds: duration,
-      organizer_email: organizerEmail,
-      organizer_name: organizerEmail.split('@')[0],
-      raw_content: meetingData.transcript_segments?.map(s => 
-        `${s.start} --> ${s.end}\n<v ${s.speaker}>${s.text}</v>`
-      ).join('\n\n') || '',
-      corrected_transcript: meetingData.transcript_text || '',
-      total_participant_count: meetingData.attendees?.length || 0,
-      external_participant_count: meetingData.attendees?.length || 0,
-      status: 'completed',
-      meeting_type: 'teams_meeting',
-      business_unit: meetingData.source || 'teams_daily_processor_raw_v2',
-      processed_at: new Date().toISOString()
-    };
-
-    console.log('Inserting meeting record:', meetingRecord.id);
-    const { data: meeting, error: meetingError } = await supabase
+    // Check if meeting already exists by external_meeting_id
+    const { data: existingMeeting } = await supabase
       .from('meetings')
-      .insert(meetingRecord)
-      .select()
-      .single();
+      .select('id, user_id')
+      .eq('external_meeting_id', meetingData.meeting_id)
+      .maybeSingle();
 
-    if (meetingError) {
-      console.error('Error inserting meeting:', meetingError);
-      throw new Error(`Failed to create meeting: ${meetingError.message}`);
+    let meeting;
+    
+    if (existingMeeting) {
+      // Update existing meeting
+      console.log('Meeting already exists, updating:', existingMeeting.id);
+      const { data: updatedMeeting, error: updateError } = await supabase
+        .from('meetings')
+        .update({
+          title: meetingData.title,
+          start_time: startTime?.toISOString(),
+          end_time: endTime?.toISOString(),
+          duration_seconds: duration,
+          organizer_email: organizerEmail,
+          organizer_name: organizerEmail.split('@')[0],
+          raw_content: meetingData.transcript_segments?.map(s => 
+            `${s.start} --> ${s.end}\n<v ${s.speaker}>${s.text}</v>`
+          ).join('\n\n') || '',
+          corrected_transcript: meetingData.transcript_text || '',
+          total_participant_count: meetingData.attendees?.length || 0,
+          external_participant_count: meetingData.attendees?.length || 0,
+          status: 'completed',
+          meeting_type: 'teams_meeting',
+          business_unit: meetingData.source || 'teams_daily_processor_raw_v2',
+          processed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingMeeting.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating meeting:', updateError);
+        throw new Error(`Failed to update meeting: ${updateError.message}`);
+      }
+      meeting = updatedMeeting;
+      console.log('Meeting updated successfully:', meeting.id);
+    } else {
+      // Create new meeting record
+      const meetingRecord = {
+        id: crypto.randomUUID(), // Generate new UUID for internal use
+        user_id: userId,
+        external_meeting_id: meetingData.meeting_id,
+        title: meetingData.title,
+        start_time: startTime?.toISOString(),
+        end_time: endTime?.toISOString(),
+        duration_seconds: duration,
+        organizer_email: organizerEmail,
+        organizer_name: organizerEmail.split('@')[0],
+        raw_content: meetingData.transcript_segments?.map(s => 
+          `${s.start} --> ${s.end}\n<v ${s.speaker}>${s.text}</v>`
+        ).join('\n\n') || '',
+        corrected_transcript: meetingData.transcript_text || '',
+        total_participant_count: meetingData.attendees?.length || 0,
+        external_participant_count: meetingData.attendees?.length || 0,
+        status: 'completed',
+        meeting_type: 'teams_meeting',
+        business_unit: meetingData.source || 'teams_daily_processor_raw_v2',
+        processed_at: new Date().toISOString()
+      };
+
+      console.log('Inserting new meeting record:', meetingRecord.id);
+      const { data: newMeeting, error: insertError } = await supabase
+        .from('meetings')
+        .insert(meetingRecord)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error inserting meeting:', insertError);
+        throw new Error(`Failed to create meeting: ${insertError.message}`);
+      }
+      meeting = newMeeting;
+      console.log('Meeting created successfully:', meeting.id);
     }
-
-    console.log('Meeting created successfully:', meeting.id);
 
     // Process participants
     if (meetingData.attendees && meetingData.attendees.length > 0) {
