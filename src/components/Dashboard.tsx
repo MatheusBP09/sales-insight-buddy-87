@@ -19,9 +19,10 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/integrations/supabase/client"
 
 interface BusinessUnit {
+  id: string;
   name: string;
-  display_name: string;
-  color: string;
+  description?: string;
+  color_class?: string;
 }
 
 interface DashboardStats {
@@ -51,8 +52,7 @@ export function Dashboard() {
   const fetchBusinessUnits = async () => {
     const { data } = await supabase
       .from('business_units')
-      .select('name, color')
-      .eq('is_active', true)
+      .select('id, name, description, color_class')
       .order('name')
 
     if (data) {
@@ -116,8 +116,16 @@ export function Dashboard() {
   }
 
   const getBusinessUnitColor = (buName: string) => {
-    const bu = businessUnits.find(b => b.name === buName)
-    return bu?.color || '#6b7280'
+    // For now, return a default color since color_class might not be a hex color
+    const colors: Record<string, string> = {
+      'wealth': '#10b981',
+      'credito': '#3b82f6', 
+      'hedge': '#8b5cf6',
+      'agro': '#f59e0b',
+      'seguros': '#ef4444',
+      'outros': '#6b7280'
+    }
+    return colors[buName] || '#6b7280'
   }
 
   if (loading) {
@@ -284,10 +292,9 @@ export function Dashboard() {
                 <Card key={bu.name}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">{bu.display_name}</CardTitle>
+                      <CardTitle className="text-base">{bu.name}</CardTitle>
                       <Building2 
-                        className="h-5 w-5" 
-                        style={{ color: bu.color }}
+                        className="h-5 w-5 text-muted-foreground" 
                       />
                     </div>
                   </CardHeader>

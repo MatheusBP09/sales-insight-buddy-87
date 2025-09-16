@@ -23,6 +23,15 @@ interface Meeting {
   attachment_vtt_url?: string;
   attachment_docx_name?: string;
   attachment_vtt_name?: string;
+  business_unit?: string;
+  organizer_name?: string;
+  organizer_email?: string;
+  quality_score?: number;
+  sentiment_score?: number;
+  engagement_score?: number;
+  word_count?: number;
+  external_participant_count?: number;
+  total_participant_count?: number;
   meeting_insights?: Array<{
     interest_score?: number;
     sentiment?: string;
