@@ -41,6 +41,26 @@ interface MeetingData {
   executive_summary?: string;
 }
 
+// New interface for segments-based payload format
+interface SegmentsPayload {
+  segments?: Array<{
+    start: string;
+    end: string;
+    speaker: string;
+    text: string;
+  }>;
+  transcript_text?: string;
+  source?: string;
+  raw_len?: number;
+  meta_headers?: {
+    host?: string;
+    'x-real-ip'?: string;
+    'x-forwarded-for'?: string;
+    'user-agent'?: string;
+    [key: string]: any;
+  };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -57,20 +77,29 @@ serve(async (req) => {
     const payload = await req.json()
     console.log('Received payload:', JSON.stringify(payload, null, 2))
 
-    // Extract data - handle n8n format and Python script formats
+    // Check if this is the new segments-based format
+    const isSegmentsFormat = payload.segments && payload.transcript_text && payload.source
+    
     let meetingData: MeetingData
-    if (payload.Body) {
-      console.log('Using n8n format (payload.Body)')
-      meetingData = payload.Body
-    } else if (payload.body) {
-      console.log('Using standard format (payload.body)')
-      meetingData = payload.body
-    } else if (payload.WEBHOOK_BODY) {
-      console.log('Using n8n WEBHOOK_BODY format')
-      meetingData = payload.WEBHOOK_BODY
+    
+    if (isSegmentsFormat) {
+      console.log('Processing segments-based payload format')
+      meetingData = convertSegmentsToMeetingData(payload as SegmentsPayload)
     } else {
-      console.log('Using direct payload format')
-      meetingData = payload
+      // Handle existing formats
+      if (payload.Body) {
+        console.log('Using n8n format (payload.Body)')
+        meetingData = payload.Body
+      } else if (payload.body) {
+        console.log('Using standard format (payload.body)')
+        meetingData = payload.body
+      } else if (payload.WEBHOOK_BODY) {
+        console.log('Using n8n WEBHOOK_BODY format')
+        meetingData = payload.WEBHOOK_BODY
+      } else {
+        console.log('Using direct payload format')
+        meetingData = payload
+      }
     }
 
     console.log('Extracted meeting data:', JSON.stringify(meetingData, null, 2))
@@ -633,4 +662,85 @@ function generateMeetingAnalytics(content: string, participants: any[]) {
     follow_up_scheduled: content.toLowerCase().includes('agendar') || content.toLowerCase().includes('próxima reunião'),
     agenda_followed: content.toLowerCase().includes('agenda') && content.toLowerCase().includes('item')
   }
+}
+
+// Helper function to convert segments payload to MeetingData format
+function convertSegmentsToMeetingData(segmentsPayload: SegmentsPayload): MeetingData {
+  const { segments = [], transcript_text = '', source = '', meta_headers = {} } = segmentsPayload
+  
+  // Generate a meeting ID based on content hash and timestamp
+  const contentHash = transcript_text.slice(0, 100).replace(/\s+/g, '')
+  const meetingId = `segments_${Date.now()}_${contentHash.slice(0, 20)}`
+  
+  // Extract unique speakers from segments
+  const uniqueSpeakers = [...new Set(segments.map(s => s.speaker))].filter(Boolean)
+  
+  // Use first speaker as organizer, or extract from IP/headers
+  const organizerName = uniqueSpeakers[0] || 'Unknown'
+  const hostInfo = meta_headers.host || 'unknown.host'
+  const organizerEmail = `${organizerName.toLowerCase().replace(/\s+/g, '.')}@${hostInfo}`
+  
+  // Calculate timing from segments
+  const firstSegment = segments[0]
+  const lastSegment = segments[segments.length - 1]
+  
+  const startTime = firstSegment ? parseTimeToDate(firstSegment.start) : new Date()
+  const endTime = lastSegment ? parseTimeToDate(lastSegment.end) : new Date()
+  
+  // Convert speakers to participants format
+  const participants = uniqueSpeakers.map(speaker => ({
+    name: speaker,
+    email: `${speaker.toLowerCase().replace(/\s+/g, '.')}@${hostInfo}`,
+    role: speaker === organizerName ? 'host' : 'participant',
+    speaking_time_seconds: calculateSpeakingTime(segments, speaker)
+  }))
+  
+  return {
+    meeting_id: meetingId,
+    external_meeting_id: meetingId,
+    subject: `Reunião - ${source}`,
+    organizer_name: organizerName,
+    organizer_email: organizerEmail,
+    user_name: organizerName,
+    user_email: organizerEmail,
+    start_time: startTime.toISOString(),
+    end_time: endTime.toISOString(),
+    participants: participants,
+    transcript_content: transcript_text,
+    raw_content: transcript_text,
+    word_count: transcript_text.split(' ').length,
+    auto_detected_type: 'internal',
+    created_at: new Date().toISOString()
+  }
+}
+
+// Helper to parse time format "00:01:45.596" to Date
+function parseTimeToDate(timeStr: string): Date {
+  const [hours, minutes, seconds] = timeStr.split(':')
+  const totalSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds)
+  
+  const now = new Date()
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  return new Date(startOfDay.getTime() + totalSeconds * 1000)
+}
+
+// Helper to calculate speaking time for a specific speaker
+function calculateSpeakingTime(segments: Array<{start: string, end: string, speaker: string, text: string}>, targetSpeaker: string): number {
+  let totalTime = 0
+  
+  for (const segment of segments) {
+    if (segment.speaker === targetSpeaker) {
+      const startSeconds = parseTimeToSeconds(segment.start)
+      const endSeconds = parseTimeToSeconds(segment.end)
+      totalTime += endSeconds - startSeconds
+    }
+  }
+  
+  return Math.round(totalTime)
+}
+
+// Helper to convert time string to seconds
+function parseTimeToSeconds(timeStr: string): number {
+  const [hours, minutes, seconds] = timeStr.split(':')
+  return parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds)
 }
