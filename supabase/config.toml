@@ -39,5 +39,8 @@ verify_jwt = false
 [functions.process-meeting-webhook]
 verify_jwt = false
 
+[functions.ingest-meeting-data]
+verify_jwt = false
+
 [edge_runtime]
 policy = "oneshot"
