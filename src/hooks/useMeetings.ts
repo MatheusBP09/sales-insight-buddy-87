@@ -79,8 +79,17 @@ export const useMeetings = () => {
         throw new Error('User not authenticated');
       }
 
-      // Fetch meetings with insights and participants
-      const { data: meetingsData, error: meetingsError } = await supabase
+      // Check if user is admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      const isAdmin = profile?.role === 'admin';
+
+      // Build the query - admins see all meetings, regular users see only their own
+      let query = supabase
         .from('meetings')
         .select(`
           *,
@@ -101,8 +110,14 @@ export const useMeetings = () => {
             company,
             email
           )
-        `)
-        .eq('user_id', user.id)
+        `);
+
+      // Only filter by user_id if not admin
+      if (!isAdmin) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data: meetingsData, error: meetingsError } = await query
         .order('created_at', { ascending: false });
 
       if (meetingsError) {
