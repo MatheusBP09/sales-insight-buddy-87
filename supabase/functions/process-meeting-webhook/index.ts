@@ -65,6 +65,9 @@ serve(async (req) => {
     } else if (payload.body) {
       console.log('Using standard format (payload.body)')
       meetingData = payload.body
+    } else if (payload.WEBHOOK_BODY) {
+      console.log('Using n8n WEBHOOK_BODY format')
+      meetingData = payload.WEBHOOK_BODY
     } else {
       console.log('Using direct payload format')
       meetingData = payload
