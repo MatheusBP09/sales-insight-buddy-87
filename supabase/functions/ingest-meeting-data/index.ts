@@ -50,24 +50,62 @@ serve(async (req) => {
     console.log('Payload content:', JSON.stringify(payload, null, 2));
     console.log('=== END RAW PAYLOAD ===');
 
-    // Handle array payload (from n8n)
-    const meetingData: MeetingPayload = Array.isArray(payload) ? payload[0] : payload;
-    console.log('=== EXTRACTED MEETING DATA ===');
-    console.log('Meeting data:', JSON.stringify(meetingData, null, 2));
+    // Extract meeting data from N8N webhook format
+    let meetingData: any;
+    
+    if (payload.WEBHOOK_BODY) {
+      // N8N webhook format - extract from WEBHOOK_BODY
+      console.log('=== N8N WEBHOOK FORMAT DETECTED ===');
+      const webhookBody = payload.WEBHOOK_BODY;
+      
+      meetingData = {
+        meeting_id: webhookBody.online_meeting_id,
+        title: webhookBody.event_subject,
+        start_time: webhookBody.event_start,
+        end_time: webhookBody.event_end,
+        organizer: webhookBody.user_email,
+        attendees: webhookBody.participants || [],
+        transcript_segments: [], // Will be parsed from raw_content if available
+        transcript_text: '', // Will be extracted from raw_content
+        transcript_for_llm: '',
+        source: webhookBody.type || 'n8n_webhook',
+        raw_len: webhookBody.raw_content?.length || 0,
+        meta_headers: payload.WEBHOOK_HEADERS
+      };
+      
+      // Parse transcript segments from raw_content if available
+      if (webhookBody.raw_content) {
+        meetingData.transcript_text = webhookBody.raw_content;
+        meetingData.transcript_for_llm = webhookBody.raw_content;
+        
+        // Parse VTT format to extract segments
+        const segments = parseVTTContent(webhookBody.raw_content);
+        meetingData.transcript_segments = segments;
+      }
+      
+      console.log('Extracted meeting data from N8N webhook:', JSON.stringify(meetingData, null, 2));
+    } else {
+      // Direct format or array format
+      meetingData = Array.isArray(payload) ? payload[0] : payload;
+      console.log('=== DIRECT FORMAT ===');
+      console.log('Meeting data:', JSON.stringify(meetingData, null, 2));
+    }
+
+    console.log('=== FINAL MEETING DATA ===');
     console.log('Available fields:', Object.keys(meetingData || {}));
     console.log('=== END MEETING DATA ===');
     
     // Validate required fields
-    const requiredFields = ['meeting_id', 'title', 'organizer', 'attendees', 'transcript_segments'];
+    const requiredFields = ['meeting_id', 'title', 'organizer'];
     for (const field of requiredFields) {
       if (!meetingData[field]) {
+        console.error(`Missing required field: ${field}`);
+        console.error('Available fields:', Object.keys(meetingData || {}));
         throw new Error(`Missing required field: ${field}`);
       }
     }
 
     console.log('Processing meeting:', meetingData.meeting_id);
-
-    // Extract organizer email and find/create user
     const organizerEmail = meetingData.organizer;
     console.log('Looking up organizer:', organizerEmail);
 
@@ -227,4 +265,45 @@ function parseTimeToSeconds(timeStr: string): number {
   const seconds = parseFloat(parts[2]) || 0;
   
   return hours * 3600 + minutes * 60 + seconds;
+}
+
+// Helper function to parse VTT content into transcript segments
+function parseVTTContent(vttContent: string): TranscriptSegment[] {
+  const segments: TranscriptSegment[] = [];
+  
+  if (!vttContent) return segments;
+  
+  // Split by empty lines to get individual segments
+  const lines = vttContent.split('\n');
+  let currentSegment: Partial<TranscriptSegment> = {};
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Skip WEBVTT header and empty lines
+    if (!line || line === 'WEBVTT') continue;
+    
+    // Check if line contains timestamp (format: 00:00:07.756 --> 00:00:10.996)
+    if (line.includes('-->')) {
+      const [start, end] = line.split('-->').map(t => t.trim());
+      currentSegment.start = start;
+      currentSegment.end = end;
+    }
+    // Check if line contains speaker and text (format: <v Speaker>Text</v>)
+    else if (line.startsWith('<v ') && line.endsWith('</v>')) {
+      const match = line.match(/<v ([^>]+)>(.+)<\/v>/);
+      if (match) {
+        currentSegment.speaker = match[1].trim();
+        currentSegment.text = match[2].trim();
+        
+        // If we have all required fields, add to segments
+        if (currentSegment.start && currentSegment.end && currentSegment.speaker && currentSegment.text) {
+          segments.push(currentSegment as TranscriptSegment);
+          currentSegment = {};
+        }
+      }
+    }
+  }
+  
+  return segments;
 }
