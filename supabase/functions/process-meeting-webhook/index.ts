@@ -72,8 +72,16 @@ serve(async (req) => {
 
     console.log('Extracted meeting data:', JSON.stringify(meetingData, null, 2))
 
+    // Debug each field individually
+    console.log('Debug - meeting_id:', meetingData.meeting_id)
+    console.log('Debug - external_meeting_id:', meetingData.external_meeting_id)
+    console.log('Debug - online_meeting_id:', meetingData.online_meeting_id)
+    console.log('Debug - id:', meetingData.id)
+
     // Extract and validate required fields with multiple field names support
     const meetingId = meetingData.meeting_id || meetingData.external_meeting_id || meetingData.online_meeting_id || meetingData.id
+    console.log('Debug - Final meetingId:', meetingId)
+    
     const subject = meetingData.subject || meetingData.event_subject || 'Reunião'
     const organizerEmail = meetingData.organizer_email || meetingData.user_email
     const organizerName = meetingData.organizer_name || meetingData.user_name
@@ -82,6 +90,7 @@ serve(async (req) => {
     const transcriptContent = meetingData.transcript_content || meetingData.raw_content
 
     if (!meetingId) {
+      console.log('ERROR - meetingId is empty or undefined')
       throw new Error('meeting_id, external_meeting_id, online_meeting_id ou id é obrigatório')
     }
 
