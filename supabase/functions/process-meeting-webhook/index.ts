@@ -9,6 +9,7 @@ const corsHeaders = {
 interface MeetingData {
   meeting_id?: string;
   external_meeting_id?: string;
+  online_meeting_id?: string;
   id?: string;
   subject?: string;
   event_subject?: string;
@@ -72,7 +73,7 @@ serve(async (req) => {
     console.log('Extracted meeting data:', JSON.stringify(meetingData, null, 2))
 
     // Extract and validate required fields with multiple field names support
-    const meetingId = meetingData.meeting_id || meetingData.external_meeting_id || meetingData.id
+    const meetingId = meetingData.meeting_id || meetingData.external_meeting_id || meetingData.online_meeting_id || meetingData.id
     const subject = meetingData.subject || meetingData.event_subject || 'Reunião'
     const organizerEmail = meetingData.organizer_email || meetingData.user_email
     const organizerName = meetingData.organizer_name || meetingData.user_name
@@ -81,7 +82,7 @@ serve(async (req) => {
     const transcriptContent = meetingData.transcript_content || meetingData.raw_content
 
     if (!meetingId) {
-      throw new Error('meeting_id, external_meeting_id ou id é obrigatório')
+      throw new Error('meeting_id, external_meeting_id, online_meeting_id ou id é obrigatório')
     }
 
     if (!organizerEmail) {
