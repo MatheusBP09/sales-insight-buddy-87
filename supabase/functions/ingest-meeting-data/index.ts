@@ -118,29 +118,23 @@ serve(async (req) => {
 
     let userId = existingProfile?.user_id;
 
-    // If user doesn't exist, create temporary profile
+    // If user doesn't exist, try to find any authenticated user to associate the meeting with
     if (!existingProfile) {
-      console.log('Creating temporary profile for unregistered user:', organizerEmail);
+      console.log('Organizer not found in profiles, looking for any authenticated user to associate meeting');
       
-      // Generate a UUID for temporary user
-      const tempUserId = crypto.randomUUID();
-      
-      const { error: profileError } = await supabase
+      // Try to get any existing user from profiles as fallback
+      const { data: fallbackProfile } = await supabase
         .from('profiles')
-        .insert({
-          user_id: tempUserId,
-          email: organizerEmail,
-          full_name: organizerEmail.split('@')[0], // Use email prefix as name
-          role: 'temp_user'
-        });
+        .select('user_id, email, full_name')
+        .limit(1)
+        .single();
 
-      if (profileError) {
-        console.error('Error creating temporary profile:', profileError);
-        // For now, continue without creating profile - just use email
-        userId = tempUserId;
+      if (fallbackProfile) {
+        console.log('Using fallback user for meeting:', fallbackProfile.email);
+        userId = fallbackProfile.user_id;
       } else {
-        console.log('Created temporary profile with ID:', tempUserId);
-        userId = tempUserId;
+        console.error('No authenticated users found in profiles table');
+        throw new Error('Cannot associate meeting with any user - no profiles found');
       }
     }
 
