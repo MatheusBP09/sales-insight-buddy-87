@@ -235,6 +235,60 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          cidade: string
+          created_at: string
+          data_evento: string
+          expires_at: string
+          fornecedores_necessarios: string[]
+          id: string
+          nome: string
+          orcamento_alvo: number | null
+          publico_estimado: number
+          status: string
+          status_geral: string
+          tipo_evento: string
+          uf: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          cidade: string
+          created_at?: string
+          data_evento: string
+          expires_at?: string
+          fornecedores_necessarios: string[]
+          id?: string
+          nome: string
+          orcamento_alvo?: number | null
+          publico_estimado: number
+          status?: string
+          status_geral?: string
+          tipo_evento: string
+          uf: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          cidade?: string
+          created_at?: string
+          data_evento?: string
+          expires_at?: string
+          fornecedores_necessarios?: string[]
+          id?: string
+          nome?: string
+          orcamento_alvo?: number | null
+          publico_estimado?: number
+          status?: string
+          status_geral?: string
+          tipo_evento?: string
+          uf?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       family_members: {
         Row: {
           created_at: string
@@ -529,6 +583,121 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          alert_sent: boolean | null
+          created_at: string
+          data_limite: string
+          event_id: string
+          expires_at: string
+          fornecedores_selecionados: string[] | null
+          id: string
+          nome_projeto: string
+          observacoes: string | null
+          project_status: string
+          renewal_count: number | null
+          renewal_history: Json | null
+          renewal_requested: boolean | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          alert_sent?: boolean | null
+          created_at?: string
+          data_limite: string
+          event_id: string
+          expires_at?: string
+          fornecedores_selecionados?: string[] | null
+          id?: string
+          nome_projeto: string
+          observacoes?: string | null
+          project_status?: string
+          renewal_count?: number | null
+          renewal_history?: Json | null
+          renewal_requested?: boolean | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          alert_sent?: boolean | null
+          created_at?: string
+          data_limite?: string
+          event_id?: string
+          expires_at?: string
+          fornecedores_selecionados?: string[] | null
+          id?: string
+          nome_projeto?: string
+          observacoes?: string | null
+          project_status?: string
+          renewal_count?: number | null
+          renewal_history?: Json | null
+          renewal_requested?: boolean | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          combos: Json
+          created_at: string
+          event_id: string
+          fornecedores_necessarios: string[]
+          id: string
+          nome: string | null
+          observacoes: string | null
+          orcamento_total: number
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          combos?: Json
+          created_at?: string
+          event_id: string
+          fornecedores_necessarios: string[]
+          id?: string
+          nome?: string | null
+          observacoes?: string | null
+          orcamento_total: number
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          combos?: Json
+          created_at?: string
+          event_id?: string
+          fornecedores_necessarios?: string[]
+          id?: string
+          nome?: string | null
+          observacoes?: string | null
+          orcamento_total?: number
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recordings: {
         Row: {
           created_at: string
@@ -600,6 +769,353 @@ export type Database = {
           ip_address?: unknown | null
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      supplier_attachments: {
+        Row: {
+          description: string | null
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string
+          id: string
+          is_current_version: boolean | null
+          is_public: boolean | null
+          replaces_attachment_id: string | null
+          supplier_id: string
+          title: string
+          updated_at: string
+          uploaded_at: string
+          version: number | null
+        }
+        Insert: {
+          description?: string | null
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          is_current_version?: boolean | null
+          is_public?: boolean | null
+          replaces_attachment_id?: string | null
+          supplier_id: string
+          title: string
+          updated_at?: string
+          uploaded_at?: string
+          version?: number | null
+        }
+        Update: {
+          description?: string | null
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          is_current_version?: boolean | null
+          is_public?: boolean | null
+          replaces_attachment_id?: string | null
+          supplier_id?: string
+          title?: string
+          updated_at?: string
+          uploaded_at?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_attachments_replaces_attachment_id_fkey"
+            columns: ["replaces_attachment_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_attachments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_attachments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_pricing: {
+        Row: {
+          advance_payment_percent: number | null
+          cancellation_policy: string | null
+          capacity_max: number | null
+          capacity_min: number | null
+          cleanup_fee: number | null
+          created_at: string
+          description: string | null
+          discount_conditions: string | null
+          display_order: number | null
+          event_types: string[] | null
+          holiday_multiplier: number | null
+          id: string
+          is_active: boolean | null
+          overtime_rate: number | null
+          package_deals: string[] | null
+          payment_terms: string | null
+          peak_season_multiplier: number | null
+          price_max: number | null
+          price_min: number | null
+          pricing_type: string
+          service_name: string
+          setup_fee: number | null
+          supplier_id: string
+          travel_fee: number | null
+          unit_type: string | null
+          updated_at: string
+          weekend_multiplier: number | null
+        }
+        Insert: {
+          advance_payment_percent?: number | null
+          cancellation_policy?: string | null
+          capacity_max?: number | null
+          capacity_min?: number | null
+          cleanup_fee?: number | null
+          created_at?: string
+          description?: string | null
+          discount_conditions?: string | null
+          display_order?: number | null
+          event_types?: string[] | null
+          holiday_multiplier?: number | null
+          id?: string
+          is_active?: boolean | null
+          overtime_rate?: number | null
+          package_deals?: string[] | null
+          payment_terms?: string | null
+          peak_season_multiplier?: number | null
+          price_max?: number | null
+          price_min?: number | null
+          pricing_type: string
+          service_name: string
+          setup_fee?: number | null
+          supplier_id: string
+          travel_fee?: number | null
+          unit_type?: string | null
+          updated_at?: string
+          weekend_multiplier?: number | null
+        }
+        Update: {
+          advance_payment_percent?: number | null
+          cancellation_policy?: string | null
+          capacity_max?: number | null
+          capacity_min?: number | null
+          cleanup_fee?: number | null
+          created_at?: string
+          description?: string | null
+          discount_conditions?: string | null
+          display_order?: number | null
+          event_types?: string[] | null
+          holiday_multiplier?: number | null
+          id?: string
+          is_active?: boolean | null
+          overtime_rate?: number | null
+          package_deals?: string[] | null
+          payment_terms?: string | null
+          peak_season_multiplier?: number | null
+          price_max?: number | null
+          price_min?: number | null
+          pricing_type?: string
+          service_name?: string
+          setup_fee?: number | null
+          supplier_id?: string
+          travel_fee?: number | null
+          unit_type?: string | null
+          updated_at?: string
+          weekend_multiplier?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_pricing_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          acessibilidade: string | null
+          area: number | null
+          avaliacao_interna: number | null
+          bairro: string | null
+          bebidas_inclusas: boolean | null
+          capacidade_coquetel: number | null
+          capacidade_sentado: number | null
+          cardapios_disponiveis: string[] | null
+          categoria_premium: number | null
+          cep: string | null
+          cidade: string
+          created_at: string
+          desmontagem_horas: number | null
+          direito_uso_imagem: boolean | null
+          email: string | null
+          endereco: string | null
+          entrega_dias: number | null
+          entrega_formato: string | null
+          equipamentos_disponiveis: string[] | null
+          equipe_garcons: number | null
+          equipe_tecnicos: number | null
+          estacionamento_vagas: number | null
+          estilos_decoracao: string[] | null
+          exclusividade_marca: boolean | null
+          horario_funcionamento: string | null
+          horas_cobertura_base: number | null
+          id: string
+          instagram: string | null
+          internet: string | null
+          itens_padrao: string | null
+          latitude: number | null
+          linkedin: string | null
+          lista_equipamentos: string | null
+          longitude: number | null
+          montagem_horas: number | null
+          nome: string
+          nps_historico: number | null
+          observacoes: string | null
+          personalizacao: boolean | null
+          politica_terceiros: string | null
+          prazo_montagem_horas: number | null
+          preco_por_pessoa_base: number | null
+          preco_por_pessoa_max: number | null
+          restricoes_ruido: string | null
+          status: string
+          taxa_servico: number | null
+          tecnicos_inclusos: number | null
+          telefone: string | null
+          tipo: string
+          tipos_cardapio: string[] | null
+          transmissao_vivo: boolean | null
+          uf: string
+          updated_at: string
+          user_id: string | null
+          vista_panoramica: boolean | null
+          website: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          acessibilidade?: string | null
+          area?: number | null
+          avaliacao_interna?: number | null
+          bairro?: string | null
+          bebidas_inclusas?: boolean | null
+          capacidade_coquetel?: number | null
+          capacidade_sentado?: number | null
+          cardapios_disponiveis?: string[] | null
+          categoria_premium?: number | null
+          cep?: string | null
+          cidade: string
+          created_at?: string
+          desmontagem_horas?: number | null
+          direito_uso_imagem?: boolean | null
+          email?: string | null
+          endereco?: string | null
+          entrega_dias?: number | null
+          entrega_formato?: string | null
+          equipamentos_disponiveis?: string[] | null
+          equipe_garcons?: number | null
+          equipe_tecnicos?: number | null
+          estacionamento_vagas?: number | null
+          estilos_decoracao?: string[] | null
+          exclusividade_marca?: boolean | null
+          horario_funcionamento?: string | null
+          horas_cobertura_base?: number | null
+          id?: string
+          instagram?: string | null
+          internet?: string | null
+          itens_padrao?: string | null
+          latitude?: number | null
+          linkedin?: string | null
+          lista_equipamentos?: string | null
+          longitude?: number | null
+          montagem_horas?: number | null
+          nome: string
+          nps_historico?: number | null
+          observacoes?: string | null
+          personalizacao?: boolean | null
+          politica_terceiros?: string | null
+          prazo_montagem_horas?: number | null
+          preco_por_pessoa_base?: number | null
+          preco_por_pessoa_max?: number | null
+          restricoes_ruido?: string | null
+          status?: string
+          taxa_servico?: number | null
+          tecnicos_inclusos?: number | null
+          telefone?: string | null
+          tipo: string
+          tipos_cardapio?: string[] | null
+          transmissao_vivo?: boolean | null
+          uf: string
+          updated_at?: string
+          user_id?: string | null
+          vista_panoramica?: boolean | null
+          website?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          acessibilidade?: string | null
+          area?: number | null
+          avaliacao_interna?: number | null
+          bairro?: string | null
+          bebidas_inclusas?: boolean | null
+          capacidade_coquetel?: number | null
+          capacidade_sentado?: number | null
+          cardapios_disponiveis?: string[] | null
+          categoria_premium?: number | null
+          cep?: string | null
+          cidade?: string
+          created_at?: string
+          desmontagem_horas?: number | null
+          direito_uso_imagem?: boolean | null
+          email?: string | null
+          endereco?: string | null
+          entrega_dias?: number | null
+          entrega_formato?: string | null
+          equipamentos_disponiveis?: string[] | null
+          equipe_garcons?: number | null
+          equipe_tecnicos?: number | null
+          estacionamento_vagas?: number | null
+          estilos_decoracao?: string[] | null
+          exclusividade_marca?: boolean | null
+          horario_funcionamento?: string | null
+          horas_cobertura_base?: number | null
+          id?: string
+          instagram?: string | null
+          internet?: string | null
+          itens_padrao?: string | null
+          latitude?: number | null
+          linkedin?: string | null
+          lista_equipamentos?: string | null
+          longitude?: number | null
+          montagem_horas?: number | null
+          nome?: string
+          nps_historico?: number | null
+          observacoes?: string | null
+          personalizacao?: boolean | null
+          politica_terceiros?: string | null
+          prazo_montagem_horas?: number | null
+          preco_por_pessoa_base?: number | null
+          preco_por_pessoa_max?: number | null
+          restricoes_ruido?: string | null
+          status?: string
+          taxa_servico?: number | null
+          tecnicos_inclusos?: number | null
+          telefone?: string | null
+          tipo?: string
+          tipos_cardapio?: string[] | null
+          transmissao_vivo?: boolean | null
+          uf?: string
+          updated_at?: string
+          user_id?: string | null
+          vista_panoramica?: boolean | null
+          website?: string | null
+          whatsapp?: string | null
         }
         Relationships: []
       }
@@ -951,9 +1467,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      expiring_items: {
+        Row: {
+          days_remaining: number | null
+          expires_at: string | null
+          id: string | null
+          item_type: string | null
+          name: string | null
+          renewal_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      check_project_alerts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          days_remaining: number
+          nome_projeto: string
+          project_id: string
+        }[]
+      }
       generate_workflow_documentation: {
         Args: { workflow_content: Json }
         Returns: string
@@ -988,6 +1522,10 @@ export type Database = {
       log_security_event: {
         Args: { details?: Json; event_type: string; user_id?: string }
         Returns: undefined
+      }
+      renew_project: {
+        Args: { project_id: string }
+        Returns: boolean
       }
       validate_password_strength: {
         Args: { password: string }
