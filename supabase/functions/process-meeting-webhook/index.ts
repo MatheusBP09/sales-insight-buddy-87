@@ -101,7 +101,7 @@ serve(async (req) => {
       throw new Error('organizer_email ou user_email é obrigatório')
     }
 
-    // Find or create user profile
+    // Find or create user profile (including temporary profiles for unregistered users)
     let userId: string
     
     // First check if user exists in profiles
@@ -113,6 +113,7 @@ serve(async (req) => {
 
     if (existingProfile) {
       userId = existingProfile.user_id
+      console.log('Found existing user profile for:', organizerEmail)
     } else {
       // Get user from auth.users if exists
       const { data: authUser } = await supabase.auth.admin.listUsers()
@@ -129,8 +130,30 @@ serve(async (req) => {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
+        console.log('Created profile for existing auth user:', organizerEmail)
       } else {
-        throw new Error(`Usuário com email ${organizerEmail} não encontrado`)
+        // Create temporary profile for unregistered user
+        console.log(`Creating temporary profile for unregistered user: ${organizerEmail}`)
+        
+        userId = crypto.randomUUID()
+        const businessUnit = detectBusinessUnit(organizerEmail)
+        
+        const { error: createError } = await supabase.from('profiles').insert({
+          user_id: userId,
+          email: organizerEmail,
+          full_name: organizerName || organizerEmail.split('@')[0].replace('.', ' '),
+          business_unit: businessUnit,
+          role: 'guest',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+
+        if (createError) {
+          console.error('Error creating temporary profile:', createError)
+          throw new Error(`Erro ao criar perfil temporário para ${organizerEmail}`)
+        }
+
+        console.log(`Created temporary profile with ID ${userId} for email ${organizerEmail}`)
       }
     }
 
