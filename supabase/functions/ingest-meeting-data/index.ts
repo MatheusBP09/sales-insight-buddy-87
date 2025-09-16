@@ -225,8 +225,15 @@ serve(async (req) => {
       console.log('Meeting created successfully:', meeting.id);
     }
 
-    // Process participants
+    // Process participants - clean existing ones first to avoid duplicates
     if (meetingData.attendees && meetingData.attendees.length > 0) {
+      // Remove existing participants for this meeting to avoid duplicates
+      console.log('Cleaning existing participants for meeting:', meeting.id);
+      await supabase
+        .from('meeting_participants')
+        .delete()
+        .eq('meeting_id', meeting.id);
+
       const participants = meetingData.attendees.map(name => ({
         meeting_id: meeting.id,
         name: name.trim(),
