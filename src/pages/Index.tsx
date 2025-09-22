@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Clock, Users, TrendingUp, BarChart3, History, Mic, LogOut, Trash2, Calendar, Activity, Target, ChevronDown, ChevronRight } from "lucide-react";
+import { Clock, Users, TrendingUp, BarChart3, History, Mic, LogOut, Trash2, Calendar, Activity, Target, ChevronDown, ChevronRight, Home, Presentation } from "lucide-react";
 import { useMeetings } from "@/hooks/useMeetings";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -158,27 +158,41 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-background/95">
       {/* Header */}
-      <header className="border-b border-border bg-gradient-primary/10 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
+      <header className="border-b border-border/50 bg-gradient-to-r from-card/95 to-card/50 backdrop-blur-lg sticky top-0 z-50 shadow-lg">
+        <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-                <Activity className="w-6 h-6 text-primary-foreground" />
+            <div className="flex items-center space-x-6">
+              <div className="relative">
+                <div className="w-14 h-14 bg-gradient-to-br from-primary via-primary/90 to-primary/70 rounded-xl flex items-center justify-center shadow-lg shadow-primary/25">
+                  <Activity className="w-8 h-8 text-primary-foreground" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-br from-success to-success/80 rounded-full border-2 border-background"></div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">Sales Analytics Hub</h1>
-                <p className="text-sm text-muted-foreground">
-                  Olá, {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
+              <div className="space-y-1">
+                <h1 className="text-2xl font-bold text-foreground tracking-tight">Sales Analytics Hub</h1>
+                <p className="text-base text-muted-foreground font-medium">
+                  Bem-vindo, {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
-                {meetings.length} reuniões
-              </Badge>
-              <Button variant="ghost" size="sm" onClick={signOut}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="px-4 py-2 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border border-primary/20">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-foreground">{meetings.length}</span>
+                    <span className="text-xs text-muted-foreground">reuniões</span>
+                  </div>
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="lg" 
+                onClick={signOut}
+                className="group hover:bg-destructive/10 hover:text-destructive border border-border/50 hover:border-destructive/30 transition-all duration-300"
+              >
+                <LogOut className="w-5 h-5 mr-3 group-hover:animate-pulse" />
+                <span className="font-medium">Sair</span>
               </Button>
             </div>
           </div>
@@ -186,14 +200,39 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 space-y-8">
-        <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="meetings">Reuniões</TabsTrigger>
-          </TabsList>
+      <main className="container mx-auto px-6">
+        {/* Navigation Tabs */}
+        <div className="sticky top-[120px] z-40 -mt-4 mb-8">
+          <div className="bg-gradient-to-r from-card/95 to-card/80 backdrop-blur-lg rounded-2xl border border-border/50 shadow-lg p-2">
+            <Tabs defaultValue="dashboard" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 bg-transparent p-0 h-auto">
+                <TabsTrigger 
+                  value="dashboard" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25 rounded-xl py-4 px-6 text-base font-semibold transition-all duration-300 hover:bg-muted/50"
+                >
+                  <Home className="w-5 h-5 mr-3" />
+                  Dashboard
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="meetings"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25 rounded-xl py-4 px-6 text-base font-semibold transition-all duration-300 hover:bg-muted/50"
+                >
+                  <Presentation className="w-5 h-5 mr-3" />
+                  Reuniões
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </div>
+
+        <div className="pb-8">
+          <Tabs defaultValue="dashboard" className="w-full">
+            <TabsList className="hidden">
+              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+              <TabsTrigger value="meetings">Reuniões</TabsTrigger>
+            </TabsList>
           
-          <TabsContent value="dashboard" className="space-y-6">
+            <TabsContent value="dashboard" className="space-y-8 animate-fade-in">
             {/* Key Statistics */}
             <section>
               <div className="flex items-center justify-between mb-6">
@@ -261,7 +300,7 @@ const Index = () => {
             <AnalyticsDashboard meetings={meetings} />
           </TabsContent>
           
-          <TabsContent value="meetings" className="space-y-6">
+          <TabsContent value="meetings" className="space-y-8 animate-fade-in">
             {/* Filters */}
             <MeetingsFilter 
               onFilterChange={setFilters}
@@ -483,8 +522,9 @@ const Index = () => {
                 </div>
               )}
             </section>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        </div>
       </main>
       
       {/* Meeting Details Dialog */}
