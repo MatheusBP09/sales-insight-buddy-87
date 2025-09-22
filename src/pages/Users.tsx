@@ -2,14 +2,30 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Users, Building2, TrendingUp, Activity, Search, Filter, UserPlus, BarChart3 } from "lucide-react";
+import { Users, Building2, TrendingUp, Activity, UserPlus, BarChart3, Eye, Mail } from "lucide-react";
 import { useMeetings } from "@/hooks/useMeetings";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UsersFilter } from "@/components/UsersFilter";
+
+interface FilterState {
+  search: string;
+  businessUnit: string;
+  scoreRange: string;
+  activityStatus: string;
+  sortBy: string;
+  sortOrder: string;
+}
 
 const UsersPage = () => {
   const { meetings, loading } = useMeetings();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState<FilterState>({
+    search: "",
+    businessUnit: "all",
+    scoreRange: "all",
+    activityStatus: "all",
+    sortBy: "name",
+    sortOrder: "asc"
+  });
 
   // Analyze user data from meetings
   const usersData = useMemo(() => {
@@ -88,16 +104,94 @@ const UsersPage = () => {
     return Array.from(units.values());
   }, [usersData]);
 
-  const filteredUsers = usersData.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.businessUnit.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Enhanced filtering and sorting
+  const filteredAndSortedUsers = useMemo(() => {
+    let filtered = usersData.filter(user => {
+      // Search filter
+      const searchMatch = !filters.search || 
+        user.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+        user.email.toLowerCase().includes(filters.search.toLowerCase()) ||
+        user.businessUnit.toLowerCase().includes(filters.search.toLowerCase());
+
+      // Business unit filter
+      const businessUnitMatch = filters.businessUnit === "all" || 
+        user.businessUnit === filters.businessUnit;
+
+      // Score range filter
+      let scoreMatch = true;
+      if (filters.scoreRange !== "all") {
+        switch (filters.scoreRange) {
+          case "high":
+            scoreMatch = user.avgScore >= 75;
+            break;
+          case "medium":
+            scoreMatch = user.avgScore >= 50 && user.avgScore < 75;
+            break;
+          case "low":
+            scoreMatch = user.avgScore > 0 && user.avgScore < 50;
+            break;
+          case "no-score":
+            scoreMatch = user.avgScore === 0;
+            break;
+        }
+      }
+
+      // Activity status filter
+      let activityMatch = true;
+      if (filters.activityStatus !== "all") {
+        const isActive = user.lastActivity && 
+          new Date(user.lastActivity) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        
+        if (filters.activityStatus === "active") {
+          activityMatch = isActive;
+        } else if (filters.activityStatus === "inactive") {
+          activityMatch = !isActive;
+        }
+      }
+
+      return searchMatch && businessUnitMatch && scoreMatch && activityMatch;
+    });
+
+    // Sorting
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (filters.sortBy) {
+        case "meetings":
+          aValue = a.totalMeetings;
+          bValue = b.totalMeetings;
+          break;
+        case "score":
+          aValue = a.avgScore;
+          bValue = b.avgScore;
+          break;
+        case "lastActivity":
+          aValue = a.lastActivity ? new Date(a.lastActivity).getTime() : 0;
+          bValue = b.lastActivity ? new Date(b.lastActivity).getTime() : 0;
+          break;
+        case "businessUnit":
+          aValue = a.businessUnit;
+          bValue = b.businessUnit;
+          break;
+        default: // name
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+      }
+
+      if (aValue < bValue) return filters.sortOrder === "asc" ? -1 : 1;
+      if (aValue > bValue) return filters.sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [usersData, filters]);
 
   const totalUsers = usersData.length;
   const activeUsers = usersData.filter(u => u.lastActivity && 
     new Date(u.lastActivity) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
   ).length;
+  
+  const uniqueBusinessUnits = Array.from(new Set(usersData.map(u => u.businessUnit)));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-background/95">
@@ -214,99 +308,158 @@ const UsersPage = () => {
           </CardContent>
         </Card>
 
+        {/* Filters */}
+        <UsersFilter 
+          filters={filters}
+          onFiltersChange={setFilters}
+          businessUnits={uniqueBusinessUnits}
+          totalUsers={totalUsers}
+          filteredCount={filteredAndSortedUsers.length}
+        />
+
         {/* Users List */}
         <Card className="bg-gradient-card border-border/50">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-primary" />
-                  Usuários Detalhados
-                </CardTitle>
-                <CardDescription>
-                  Lista completa de usuários baseada nas transcrições
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar usuários..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-80"
-                  />
-                </div>
-                <Button variant="outline" size="sm">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filtros
-                </Button>
-              </div>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Lista de Usuários
+            </CardTitle>
+            <CardDescription>
+              {filteredAndSortedUsers.length > 0 ? (
+                `${filteredAndSortedUsers.length} usuário${filteredAndSortedUsers.length !== 1 ? 's' : ''} encontrado${filteredAndSortedUsers.length !== 1 ? 's' : ''}`
+              ) : (
+                "Nenhum usuário encontrado com os filtros aplicados"
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {filteredUsers.map((user) => (
-                <Card key={user.email} className="border border-border/30 hover:shadow-lg transition-all hover:shadow-primary/10">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <Avatar className="w-12 h-12">
-                          <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-semibold">
-                            {user.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-semibold text-foreground">{user.name}</h3>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
-                          <Badge variant="outline" className="mt-1 text-xs">
-                            {user.businessUnit}
+            {filteredAndSortedUsers.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  Nenhum usuário encontrado
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Tente ajustar os filtros para ver mais resultados.
+                </p>
+                <Button variant="outline" onClick={() => setFilters({
+                  search: "",
+                  businessUnit: "all",
+                  scoreRange: "all",
+                  activityStatus: "all",
+                  sortBy: "name",
+                  sortOrder: "asc"
+                })}>
+                  Limpar Filtros
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredAndSortedUsers.map((user) => (
+                  <Card key={user.email} className="border border-border/30 hover:shadow-lg transition-all hover:shadow-primary/10">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                          <Avatar className="w-14 h-14">
+                            <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-semibold text-lg">
+                              {user.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-foreground text-lg">{user.name}</h3>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Mail className="w-3 h-3" />
+                              {user.email}
+                            </div>
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20"
+                            >
+                              <Building2 className="w-3 h-3 mr-1" />
+                              {user.businessUnit}
+                            </Badge>
+                            {user.lastActivity && (
+                              <div className="flex items-center gap-1">
+                                <Activity className={`w-3 h-3 ${
+                                  new Date(user.lastActivity) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                                    ? 'text-success' : 'text-muted-foreground'
+                                }`} />
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(user.lastActivity) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                                    ? 'Ativo' : 'Inativo'}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-6 text-center">
+                          <div className="bg-gradient-to-br from-background to-muted/20 rounded-lg p-3 border border-border/30">
+                            <div className="text-2xl font-bold text-foreground">{user.totalMeetings}</div>
+                            <div className="text-xs text-muted-foreground">Reuniões</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-3 border border-primary/20">
+                            <div className={`text-2xl font-bold ${
+                              user.avgScore >= 75 ? 'text-success' : 
+                              user.avgScore >= 50 ? 'text-primary' : 
+                              user.avgScore > 0 ? 'text-warning' : 'text-muted-foreground'
+                            }`}>
+                              {user.avgScore > 0 ? `${Math.round(user.avgScore)}%` : 'N/A'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Score Médio</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-background to-muted/20 rounded-lg p-3 border border-border/30">
+                            <div className="text-2xl font-bold text-foreground">
+                              {Math.round(user.totalDuration / 60)}min
+                            </div>
+                            <div className="text-xs text-muted-foreground">Duração Total</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col gap-2">
+                          <Button variant="default" size="sm" className="bg-gradient-to-r from-primary to-primary/80">
+                            <Eye className="w-4 h-4 mr-2" />
+                            Ver Perfil
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <BarChart3 className="w-4 h-4 mr-2" />
+                            Analytics
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {user.lastActivity && (
+                        <div className="mt-4 pt-4 border-t border-border/30 flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            Última atividade: {new Date(user.lastActivity).toLocaleDateString('pt-BR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                          <Badge 
+                            variant={
+                              new Date(user.lastActivity) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                                ? "default" : 
+                              new Date(user.lastActivity) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                                ? "secondary" : "outline"
+                            }
+                            className="text-xs"
+                          >
+                            {new Date(user.lastActivity) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                              ? 'Muito Ativo' : 
+                            new Date(user.lastActivity) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                              ? 'Ativo' : 'Inativo'}
                           </Badge>
                         </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-3 gap-6 text-center">
-                        <div>
-                          <div className="text-lg font-bold text-foreground">{user.totalMeetings}</div>
-                          <div className="text-xs text-muted-foreground">Reuniões</div>
-                        </div>
-                        <div>
-                          <div className="text-lg font-bold text-primary">{Math.round(user.avgScore)}%</div>
-                          <div className="text-xs text-muted-foreground">Score Médio</div>
-                        </div>
-                        <div>
-                          <div className="text-lg font-bold text-foreground">
-                            {Math.round(user.totalDuration / 60)}min
-                          </div>
-                          <div className="text-xs text-muted-foreground">Duração Total</div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
-                          <BarChart3 className="w-4 h-4 mr-2" />
-                          Detalhes
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {user.lastActivity && (
-                      <div className="mt-4 pt-4 border-t border-border/30">
-                        <p className="text-xs text-muted-foreground">
-                          Última atividade: {new Date(user.lastActivity).toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
