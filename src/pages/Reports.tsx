@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { BarChart3, LineChart, PieChart, TrendingUp, Download, Filter, Calendar, FileText, Users, Target } from "lucide-react";
 import { useMeetings } from "@/hooks/useMeetings";
-import { DatePickerWithRange } from "@/components/ui/date-picker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Reports = () => {

@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "./hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import React from "react";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,31 @@ const App = () => (
           <Route path="/meetings" element={
             <AuthWrapper>
               <Index />
+            </AuthWrapper>
+          } />
+          <Route path="/users" element={
+            <AuthWrapper>
+              {React.createElement(React.lazy(() => import('./pages/Users')))}
+            </AuthWrapper>
+          } />
+          <Route path="/financial" element={
+            <AuthWrapper>
+              {React.createElement(React.lazy(() => import('./pages/Financial')))}
+            </AuthWrapper>
+          } />
+          <Route path="/playbook" element={
+            <AuthWrapper>
+              {React.createElement(React.lazy(() => import('./pages/Playbook')))}
+            </AuthWrapper>
+          } />
+          <Route path="/reports" element={
+            <AuthWrapper>
+              {React.createElement(React.lazy(() => import('./pages/Reports')))}
+            </AuthWrapper>
+          } />
+          <Route path="/settings" element={
+            <AuthWrapper>
+              {React.createElement(React.lazy(() => import('./pages/Settings')))}
             </AuthWrapper>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

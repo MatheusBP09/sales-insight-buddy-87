@@ -45,28 +45,28 @@ const menuItems = [
     description: "Lista e análises das reuniões" 
   },
   { 
-    title: "Pessoas", 
-    url: "/people", 
+    title: "Usuários", 
+    url: "/users", 
     icon: Users,
-    description: "Gestão de usuários e equipes" 
+    description: "Gestão de usuários e Business Units" 
   },
   { 
-    title: "Business Units", 
-    url: "/business-units", 
+    title: "Financeiro", 
+    url: "/financial", 
     icon: Building2,
-    description: "Wealth, Crédito, Hedge, Agro, Seguros" 
+    description: "Wealth, Crédito, Hedge" 
   },
   { 
     title: "Playbook", 
     url: "/playbook", 
     icon: BookOpen,
-    description: "Regras e configurações de análise" 
+    description: "Regras e configurações de Relatórios" 
   },
   { 
     title: "Relatórios", 
     url: "/reports", 
     icon: BarChart3,
-    description: "Dashboards e métricas avançadas" 
+    description: "Dashboards e métricas" 
   }
 ]
 
