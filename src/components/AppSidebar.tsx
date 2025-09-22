@@ -128,9 +128,9 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-2">
               {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.title} className="mb-1">
                   <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined}>
                     <NavLink 
                       to={item.url} 
