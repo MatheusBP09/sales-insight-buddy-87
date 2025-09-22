@@ -9,9 +9,13 @@ import { Dashboard } from "@/components/Dashboard";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import UsersPage from "./pages/Users";
+import Financial from "./pages/Financial";
+import Playbook from "./pages/Playbook";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
 import { useAuth } from "./hooks/useAuth";
 import { Loader2 } from "lucide-react";
-import React from "react";
 
 const queryClient = new QueryClient();
 
@@ -62,27 +66,27 @@ const App = () => (
           } />
           <Route path="/users" element={
             <AuthWrapper>
-              {React.createElement(React.lazy(() => import('./pages/Users')))}
+              <UsersPage />
             </AuthWrapper>
           } />
           <Route path="/financial" element={
             <AuthWrapper>
-              {React.createElement(React.lazy(() => import('./pages/Financial')))}
+              <Financial />
             </AuthWrapper>
           } />
           <Route path="/playbook" element={
             <AuthWrapper>
-              {React.createElement(React.lazy(() => import('./pages/Playbook')))}
+              <Playbook />
             </AuthWrapper>
           } />
           <Route path="/reports" element={
             <AuthWrapper>
-              {React.createElement(React.lazy(() => import('./pages/Reports')))}
+              <Reports />
             </AuthWrapper>
           } />
           <Route path="/settings" element={
             <AuthWrapper>
-              {React.createElement(React.lazy(() => import('./pages/Settings')))}
+              <Settings />
             </AuthWrapper>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
