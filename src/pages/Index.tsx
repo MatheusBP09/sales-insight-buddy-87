@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Clock, Users, TrendingUp, BarChart3, History, Mic, LogOut, Trash2, Calendar, Activity, Target } from "lucide-react";
+import { Clock, Users, TrendingUp, BarChart3, History, Mic, LogOut, Trash2, Calendar, Activity, Target, ChevronDown, ChevronRight } from "lucide-react";
 import { useMeetings } from "@/hooks/useMeetings";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -20,6 +20,7 @@ const Index = () => {
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
   const [showMeetingDetails, setShowMeetingDetails] = useState(false);
   const [meetingToDelete, setMeetingToDelete] = useState<any>(null);
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
     search: "",
     dateRange: "all",
@@ -142,6 +143,16 @@ const Index = () => {
         description: "A reunião foi removida com sucesso"
       });
     }
+  };
+
+  const toggleUserExpanded = (userEmail: string) => {
+    const newExpandedUsers = new Set(expandedUsers);
+    if (newExpandedUsers.has(userEmail)) {
+      newExpandedUsers.delete(userEmail);
+    } else {
+      newExpandedUsers.add(userEmail);
+    }
+    setExpandedUsers(newExpandedUsers);
   };
 
   return (
@@ -305,132 +316,170 @@ const Index = () => {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-8">
-                  {Object.entries(meetingsByUser).map(([userEmail, userMeetings]) => (
-                    <div key={userEmail} className="space-y-4">
-                      <div className="flex items-center gap-3 p-4 bg-gradient-subtle rounded-lg border border-primary/20">
-                        <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                          <Users className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-foreground">{userEmail}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {userMeetings.length} reuniões
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-4">
-                        {userMeetings.map((meeting) => (
-                          <Card key={meeting.id} className="hover:shadow-lg transition-all hover:shadow-primary/10 border-border/50 bg-gradient-card">
-                            <CardHeader>
-                              <div className="flex items-center justify-between">
-                                <CardTitle className="text-lg truncate text-foreground">{meeting.title}</CardTitle>
-                                <Badge variant={
-                                  meeting.status === "completed" ? "default" :
-                                  meeting.status === "processing" ? "secondary" : "outline"
-                                }>
-                                  {meeting.status === "completed" ? "Concluída" :
-                                   meeting.status === "processing" ? "Processando" : meeting.status}
-                                </Badge>
-                              </div>
-                              <CardDescription className="text-muted-foreground">
-                                {meeting.client_company && `${meeting.client_company} • `}
-                                {meeting.start_time 
-                                  ? new Date(meeting.start_time).toLocaleDateString('pt-BR', {
-                                      day: '2-digit',
-                                      month: '2-digit',
-                                      year: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    })
-                                  : new Date(meeting.created_at).toLocaleDateString('pt-BR')
-                                }
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-3">
-                                {meeting.duration_seconds && (
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Clock className="w-4 h-4" />
-                                    {Math.round(meeting.duration_seconds / 60)} min
-                                  </div>
-                                )}
-                                {meeting.meeting_participants && meeting.meeting_participants.length > 0 && (
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Users className="w-4 h-4" />
-                                    {meeting.meeting_participants.length} participantes
-                                  </div>
-                                )}
-                                {meeting.meeting_insights?.[0]?.interest_score !== undefined && (
-                                  <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-sm">
-                                      <span className="text-foreground">Score de Interesse</span>
-                                      <span className="font-medium text-primary">{meeting.meeting_insights[0].interest_score}%</span>
-                                    </div>
-                                    <Progress value={meeting.meeting_insights[0].interest_score} className="h-2" />
-                                  </div>
-                                )}
-                                {meeting.meeting_insights?.[0]?.sentiment && (
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <Badge 
-                                      variant={
-                                        meeting.meeting_insights[0].sentiment === 'positive' ? 'default' :
-                                        meeting.meeting_insights[0].sentiment === 'negative' ? 'destructive' :
-                                        'secondary'
-                                      }
-                                      className="text-xs"
-                                    >
-                                      {meeting.meeting_insights[0].sentiment === 'positive' ? 'Positivo' :
-                                       meeting.meeting_insights[0].sentiment === 'negative' ? 'Negativo' : 'Neutro'}
+                <div className="space-y-6">
+                  {Object.entries(meetingsByUser).map(([userEmail, userMeetings]) => {
+                    const isExpanded = expandedUsers.has(userEmail);
+                    const avgScore = userMeetings.reduce((acc, meeting) => {
+                      const score = meeting.meeting_insights?.[0]?.interest_score;
+                      return score ? acc + score : acc;
+                    }, 0) / userMeetings.filter(m => m.meeting_insights?.[0]?.interest_score).length || 0;
+
+                    return (
+                      <div key={userEmail} className="space-y-4">
+                        <Card 
+                          className="cursor-pointer hover:shadow-lg transition-all hover:shadow-primary/10 border-primary/30 bg-gradient-to-r from-card to-card/80"
+                          onClick={() => toggleUserExpanded(userEmail)}
+                        >
+                          <CardContent className="p-6">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center shadow-lg">
+                                  <Users className="w-6 h-6 text-primary-foreground" />
+                                </div>
+                                <div>
+                                  <h3 className="text-lg font-semibold text-foreground">{userEmail}</h3>
+                                  <div className="flex items-center gap-4 mt-1">
+                                    <Badge variant="outline" className="text-xs">
+                                      {userMeetings.length} {userMeetings.length === 1 ? 'reunião' : 'reuniões'}
                                     </Badge>
+                                    {avgScore > 0 && (
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs text-muted-foreground">Score médio:</span>
+                                        <Badge variant={avgScore >= 75 ? "default" : avgScore >= 50 ? "secondary" : "destructive"}>
+                                          {Math.round(avgScore)}%
+                                        </Badge>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                                <div className="flex gap-2">
-                                  <Button 
-                                    className="flex-1" 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={() => handleViewDetails(meeting)}
-                                    disabled={meeting.status !== 'completed'}
-                                  >
-                                    {meeting.status === 'completed' ? 'Ver Detalhes' : 'Processando...'}
-                                  </Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => setMeetingToDelete(meeting)}
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Excluir Reunião</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Tem certeza que deseja excluir a reunião "{meeting.title}"? Esta ação não pode ser desfeita.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel onClick={() => setMeetingToDelete(null)}>
-                                          Cancelar
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteConfirm}>
-                                          Excluir
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
                                 </div>
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                              <div className="flex items-center gap-2">
+                                {isExpanded ? (
+                                  <ChevronDown className="w-5 h-5 text-primary" />
+                                ) : (
+                                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        {isExpanded && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-4 animated-fadeIn">
+                            {userMeetings.map((meeting) => (
+                              <Card key={meeting.id} className="hover:shadow-lg transition-all hover:shadow-primary/10 border-border/50 bg-gradient-card">
+                                <CardHeader>
+                                  <div className="flex items-center justify-between">
+                                    <CardTitle className="text-lg truncate text-foreground">{meeting.title}</CardTitle>
+                                    <Badge variant={
+                                      meeting.status === "completed" ? "default" :
+                                      meeting.status === "processing" ? "secondary" : "outline"
+                                    }>
+                                      {meeting.status === "completed" ? "Concluída" :
+                                       meeting.status === "processing" ? "Processando" : meeting.status}
+                                    </Badge>
+                                  </div>
+                                  <CardDescription className="text-muted-foreground">
+                                    {meeting.client_company && `${meeting.client_company} • `}
+                                    {meeting.start_time 
+                                      ? new Date(meeting.start_time).toLocaleDateString('pt-BR', {
+                                          day: '2-digit',
+                                          month: '2-digit',
+                                          year: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })
+                                      : new Date(meeting.created_at).toLocaleDateString('pt-BR')
+                                    }
+                                  </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="space-y-3">
+                                    {meeting.duration_seconds && (
+                                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Clock className="w-4 h-4" />
+                                        {Math.round(meeting.duration_seconds / 60)} min
+                                      </div>
+                                    )}
+                                    {meeting.meeting_participants && meeting.meeting_participants.length > 0 && (
+                                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Users className="w-4 h-4" />
+                                        {meeting.meeting_participants.length} participantes
+                                      </div>
+                                    )}
+                                    {meeting.meeting_insights?.[0]?.interest_score !== undefined && (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-sm">
+                                          <span className="text-foreground">Score de Interesse</span>
+                                          <span className="font-medium text-primary">{meeting.meeting_insights[0].interest_score}%</span>
+                                        </div>
+                                        <Progress value={meeting.meeting_insights[0].interest_score} className="h-2" />
+                                      </div>
+                                    )}
+                                    {meeting.meeting_insights?.[0]?.sentiment && (
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <Badge 
+                                          variant={
+                                            meeting.meeting_insights[0].sentiment === "positive" ? "default" :
+                                            meeting.meeting_insights[0].sentiment === "negative" ? "destructive" : "secondary"
+                                          }
+                                        >
+                                          {meeting.meeting_insights[0].sentiment === "positive" ? "Positivo" :
+                                           meeting.meeting_insights[0].sentiment === "negative" ? "Negativo" : "Neutro"}
+                                        </Badge>
+                                      </div>
+                                    )}
+                                    <div className="flex gap-2 pt-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleViewDetails(meeting);
+                                        }}
+                                        className="flex-1"
+                                      >
+                                        Ver Detalhes
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setMeetingToDelete(meeting);
+                                            }}
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Tem certeza que deseja excluir a reunião "{meetingToDelete?.title}"? 
+                                              Esta ação não pode ser desfeita.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleDeleteConfirm}>
+                                              Excluir
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </section>
