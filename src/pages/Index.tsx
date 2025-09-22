@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Clock, Users, TrendingUp, BarChart3, History, Mic, LogOut, Trash2, Calendar, Activity, Target, ChevronDown, ChevronRight, Home, Presentation } from "lucide-react";
+import { Clock, Users, TrendingUp, BarChart3, History, Mic, LogOut, Trash2, Calendar, Activity, Target, ChevronDown, ChevronRight, Home, Presentation, Grid3X3, List, User, Search, Filter, Eye, ExpandIcon, ShrinkIcon } from "lucide-react";
 import { useMeetings } from "@/hooks/useMeetings";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -21,6 +21,7 @@ const Index = () => {
   const [showMeetingDetails, setShowMeetingDetails] = useState(false);
   const [meetingToDelete, setMeetingToDelete] = useState<any>(null);
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'grouped' | 'list'>('grouped');
   const [filters, setFilters] = useState({
     search: "",
     dateRange: "all",
@@ -153,6 +154,15 @@ const Index = () => {
       newExpandedUsers.add(userEmail);
     }
     setExpandedUsers(newExpandedUsers);
+  };
+
+  const expandAllUsers = () => {
+    const allUsers = Object.keys(meetingsByUser);
+    setExpandedUsers(new Set(allUsers));
+  };
+
+  const collapseAllUsers = () => {
+    setExpandedUsers(new Set());
   };
 
   return (
@@ -309,18 +319,67 @@ const Index = () => {
 
             {/* Meetings List */}
             <section>
-                <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
                   <h2 className="text-2xl font-bold text-foreground">
                     Reuniões {filteredMeetings.length !== meetings.length && `(${filteredMeetings.length} de ${meetings.length})`}
                   </h2>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="text-xs">
-                      {filteredMeetings.length} resultados
-                    </Badge>
-                    <CreateMeetingDialog />
-                  </div>
+                  <Badge variant="outline" className="text-sm px-3 py-1">
+                    {Object.keys(meetingsByUser).length} pessoas • {filteredMeetings.length} reuniões
+                  </Badge>
                 </div>
-              
+                
+                <div className="flex items-center gap-3">
+                  {/* View Mode Toggle */}
+                  <div className="flex items-center bg-muted/30 rounded-lg p-1">
+                    <Button
+                      variant={viewMode === 'grouped' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('grouped')}
+                      className="h-8 px-3"
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Por Pessoa
+                    </Button>
+                    <Button
+                      variant={viewMode === 'list' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('list')}
+                      className="h-8 px-3"
+                    >
+                      <List className="w-4 h-4 mr-2" />
+                      Lista
+                    </Button>
+                  </div>
+
+                  {/* Expand/Collapse All - Only show in grouped mode */}
+                  {viewMode === 'grouped' && Object.keys(meetingsByUser).length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={expandAllUsers}
+                        className="h-8 px-3"
+                      >
+                        <ExpandIcon className="w-4 h-4 mr-2" />
+                        Expandir Tudo
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={collapseAllUsers}
+                        className="h-8 px-3"
+                      >
+                        <ShrinkIcon className="w-4 h-4 mr-2" />
+                        Recolher Tudo
+                      </Button>
+                    </div>
+                  )}
+
+                  <CreateMeetingDialog />
+                </div>
+              </div>
+            
               {meetingsLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -355,171 +414,352 @@ const Index = () => {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-6">
-                  {Object.entries(meetingsByUser).map(([userEmail, userMeetings]) => {
-                    const isExpanded = expandedUsers.has(userEmail);
-                    const avgScore = userMeetings.reduce((acc, meeting) => {
-                      const score = meeting.meeting_insights?.[0]?.interest_score;
-                      return score ? acc + score : acc;
-                    }, 0) / userMeetings.filter(m => m.meeting_insights?.[0]?.interest_score).length || 0;
+                <>
+                  {/* Grouped View - Por Pessoa */}
+                  {viewMode === 'grouped' && (
+                    <div className="space-y-6">
+                      {Object.entries(meetingsByUser).map(([userEmail, userMeetings]) => {
+                        const isExpanded = expandedUsers.has(userEmail);
+                        const avgScore = userMeetings.reduce((acc, meeting) => {
+                          const score = meeting.meeting_insights?.[0]?.interest_score;
+                          return score ? acc + score : acc;
+                        }, 0) / userMeetings.filter(m => m.meeting_insights?.[0]?.interest_score).length || 0;
 
-                    return (
-                      <div key={userEmail} className="space-y-4">
-                        <Card 
-                          className="cursor-pointer hover:shadow-lg transition-all hover:shadow-primary/10 border-primary/30 bg-gradient-to-r from-card to-card/80"
-                          onClick={() => toggleUserExpanded(userEmail)}
-                        >
-                          <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center shadow-lg">
-                                  <Users className="w-6 h-6 text-primary-foreground" />
-                                </div>
-                                <div>
-                                  <h3 className="text-lg font-semibold text-foreground">{userEmail}</h3>
-                                  <div className="flex items-center gap-4 mt-1">
-                                    <Badge variant="outline" className="text-xs">
-                                      {userMeetings.length} {userMeetings.length === 1 ? 'reunião' : 'reuniões'}
-                                    </Badge>
-                                    {avgScore > 0 && (
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-xs text-muted-foreground">Score médio:</span>
-                                        <Badge variant={avgScore >= 75 ? "default" : avgScore >= 50 ? "secondary" : "destructive"}>
-                                          {Math.round(avgScore)}%
-                                        </Badge>
+                        return (
+                          <div key={userEmail} className="space-y-4">
+                            <Card 
+                              className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:shadow-primary/10 border-primary/30 bg-gradient-to-r from-card to-card/80 hover:border-primary/50"
+                              onClick={() => toggleUserExpanded(userEmail)}
+                            >
+                              <CardContent className="p-6">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-4">
+                                    <div className="relative">
+                                      <div className="w-14 h-14 bg-gradient-to-br from-primary via-primary/90 to-primary/70 rounded-xl flex items-center justify-center shadow-lg shadow-primary/25">
+                                        <Users className="w-7 h-7 text-primary-foreground" />
                                       </div>
-                                    )}
+                                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-br from-success to-success/80 rounded-full border-2 border-card flex items-center justify-center">
+                                        <span className="text-xs font-bold text-success-foreground">{userMeetings.length}</span>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <h3 className="text-xl font-bold text-foreground mb-1">{userEmail.split('@')[0]}</h3>
+                                      <p className="text-sm text-muted-foreground mb-2">{userEmail}</p>
+                                      <div className="flex items-center gap-4">
+                                        <Badge variant="outline" className="text-xs font-medium">
+                                          {userMeetings.length} {userMeetings.length === 1 ? 'reunião' : 'reuniões'}
+                                        </Badge>
+                                        {avgScore > 0 && (
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-xs text-muted-foreground">Score médio:</span>
+                                            <Badge variant={avgScore >= 75 ? "default" : avgScore >= 50 ? "secondary" : "destructive"} className="font-semibold">
+                                              {Math.round(avgScore)}%
+                                            </Badge>
+                                          </div>
+                                        )}
+                                        <div className="text-xs text-muted-foreground">
+                                          Última: {new Date(userMeetings[0].start_time || userMeetings[0].created_at).toLocaleDateString('pt-BR')}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Expandir e filtrar por este usuário
+                                        if (!isExpanded) toggleUserExpanded(userEmail);
+                                      }}
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      Ver Reuniões
+                                    </Button>
+                                    <div className="text-center">
+                                      {isExpanded ? (
+                                        <ChevronDown className="w-6 h-6 text-primary" />
+                                      ) : (
+                                        <ChevronRight className="w-6 h-6 text-muted-foreground" />
+                                      )}
+                                      <div className="text-xs text-muted-foreground mt-1">
+                                        {isExpanded ? 'Recolher' : 'Expandir'}
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
+                              </CardContent>
+                            </Card>
+                            
+                            {isExpanded && (
+                              <div className="ml-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animated-fadeIn">
+                                {userMeetings.map((meeting) => (
+                                  <Card key={meeting.id} className="hover:shadow-lg transition-all hover:shadow-primary/10 border-border/50 bg-gradient-card group">
+                                    <CardHeader className="pb-3">
+                                      <div className="flex items-center justify-between">
+                                        <CardTitle className="text-base truncate text-foreground group-hover:text-primary transition-colors">
+                                          {meeting.title}
+                                        </CardTitle>
+                                        <Badge variant={
+                                          meeting.status === "completed" ? "default" :
+                                          meeting.status === "processing" ? "secondary" : "outline"
+                                        } className="text-xs">
+                                          {meeting.status === "completed" ? "✓" :
+                                           meeting.status === "processing" ? "⏳" : meeting.status}
+                                        </Badge>
+                                      </div>
+                                      <CardDescription className="text-xs text-muted-foreground">
+                                        {meeting.client_company && (
+                                          <Badge variant="outline" className="text-xs mr-2 mb-1">
+                                            {meeting.client_company}
+                                          </Badge>
+                                        )}
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <Calendar className="w-3 h-3" />
+                                          {meeting.start_time 
+                                            ? new Date(meeting.start_time).toLocaleDateString('pt-BR', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                              })
+                                            : new Date(meeting.created_at).toLocaleDateString('pt-BR')
+                                          }
+                                        </div>
+                                      </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="pt-0">
+                                      <div className="space-y-3">
+                                        <div className="flex items-center justify-between text-xs">
+                                          {meeting.duration_seconds && (
+                                            <div className="flex items-center gap-1 text-muted-foreground">
+                                              <Clock className="w-3 h-3" />
+                                              {Math.round(meeting.duration_seconds / 60)}min
+                                            </div>
+                                          )}
+                                          {meeting.meeting_participants && meeting.meeting_participants.length > 0 && (
+                                            <div className="flex items-center gap-1 text-muted-foreground">
+                                              <Users className="w-3 h-3" />
+                                              {meeting.meeting_participants.length}
+                                            </div>
+                                          )}
+                                        </div>
+                                        
+                                        {meeting.meeting_insights?.[0]?.interest_score !== undefined && (
+                                          <div className="space-y-2">
+                                            <div className="flex items-center justify-between text-xs">
+                                              <span className="text-foreground font-medium">Score de Interesse</span>
+                                              <Badge variant={
+                                                meeting.meeting_insights[0].interest_score >= 75 ? "default" :
+                                                meeting.meeting_insights[0].interest_score >= 50 ? "secondary" : "destructive"
+                                              } className="text-xs font-bold">
+                                                {meeting.meeting_insights[0].interest_score}%
+                                              </Badge>
+                                            </div>
+                                            <Progress value={meeting.meeting_insights[0].interest_score} className="h-2" />
+                                          </div>
+                                        )}
+                                        
+                                        {meeting.meeting_insights?.[0]?.sentiment && (
+                                          <div className="flex items-center justify-center">
+                                            <Badge 
+                                              variant={
+                                                meeting.meeting_insights[0].sentiment === "positive" ? "default" :
+                                                meeting.meeting_insights[0].sentiment === "negative" ? "destructive" : "secondary"
+                                              }
+                                              className="text-xs"
+                                            >
+                                              {meeting.meeting_insights[0].sentiment === "positive" ? "😊 Positivo" :
+                                               meeting.meeting_insights[0].sentiment === "negative" ? "😞 Negativo" : "😐 Neutro"}
+                                            </Badge>
+                                          </div>
+                                        )}
+                                        
+                                        <div className="flex gap-2 pt-2">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleViewDetails(meeting)}
+                                            className="flex-1 text-xs h-8"
+                                          >
+                                            <Eye className="w-3 h-3 mr-1" />
+                                            Detalhes
+                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setMeetingToDelete(meeting)}
+                                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                              >
+                                                <Trash2 className="w-3 h-3" />
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Tem certeza que deseja excluir a reunião "{meetingToDelete?.title}"? 
+                                                  Esta ação não pode ser desfeita.
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction onClick={handleDeleteConfirm}>
+                                                  Excluir
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </div>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                ))}
                               </div>
-                              <div className="flex items-center gap-2">
-                                {isExpanded ? (
-                                  <ChevronDown className="w-5 h-5 text-primary" />
-                                ) : (
-                                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* List View - Lista Cronológica */}
+                  {viewMode === 'list' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredMeetings.map((meeting) => (
+                        <Card key={meeting.id} className="hover:shadow-lg transition-all hover:shadow-primary/10 border-border/50 bg-gradient-card group">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-base truncate text-foreground group-hover:text-primary transition-colors">
+                                {meeting.title}
+                              </CardTitle>
+                              <Badge variant={
+                                meeting.status === "completed" ? "default" :
+                                meeting.status === "processing" ? "secondary" : "outline"
+                              } className="text-xs">
+                                {meeting.status === "completed" ? "✓" :
+                                 meeting.status === "processing" ? "⏳" : meeting.status}
+                              </Badge>
+                            </div>
+                            <CardDescription className="text-xs text-muted-foreground">
+                              <div className="flex items-center gap-2 mb-1">
+                                <User className="w-3 h-3" />
+                                <span className="font-medium">{meeting.user_email || meeting.organizer_email || 'Sem email'}</span>
+                              </div>
+                              {meeting.client_company && (
+                                <Badge variant="outline" className="text-xs mr-2 mb-1">
+                                  {meeting.client_company}
+                                </Badge>
+                              )}
+                              <div className="flex items-center gap-2 mt-1">
+                                <Calendar className="w-3 h-3" />
+                                {meeting.start_time 
+                                  ? new Date(meeting.start_time).toLocaleDateString('pt-BR', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })
+                                  : new Date(meeting.created_at).toLocaleDateString('pt-BR')
+                                }
+                              </div>
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between text-xs">
+                                {meeting.duration_seconds && (
+                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                    <Clock className="w-3 h-3" />
+                                    {Math.round(meeting.duration_seconds / 60)}min
+                                  </div>
                                 )}
+                                {meeting.meeting_participants && meeting.meeting_participants.length > 0 && (
+                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                    <Users className="w-3 h-3" />
+                                    {meeting.meeting_participants.length}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {meeting.meeting_insights?.[0]?.interest_score !== undefined && (
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-foreground font-medium">Score</span>
+                                    <Badge variant={
+                                      meeting.meeting_insights[0].interest_score >= 75 ? "default" :
+                                      meeting.meeting_insights[0].interest_score >= 50 ? "secondary" : "destructive"
+                                    } className="text-xs font-bold">
+                                      {meeting.meeting_insights[0].interest_score}%
+                                    </Badge>
+                                  </div>
+                                  <Progress value={meeting.meeting_insights[0].interest_score} className="h-2" />
+                                </div>
+                              )}
+                              
+                              {meeting.meeting_insights?.[0]?.sentiment && (
+                                <div className="flex items-center justify-center">
+                                  <Badge 
+                                    variant={
+                                      meeting.meeting_insights[0].sentiment === "positive" ? "default" :
+                                      meeting.meeting_insights[0].sentiment === "negative" ? "destructive" : "secondary"
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {meeting.meeting_insights[0].sentiment === "positive" ? "😊 Positivo" :
+                                     meeting.meeting_insights[0].sentiment === "negative" ? "😞 Negativo" : "😐 Neutro"}
+                                  </Badge>
+                                </div>
+                              )}
+                              
+                              <div className="flex gap-2 pt-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewDetails(meeting)}
+                                  className="flex-1 text-xs h-8"
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  Detalhes
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setMeetingToDelete(meeting)}
+                                      className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Tem certeza que deseja excluir a reunião "{meetingToDelete?.title}"? 
+                                        Esta ação não pode ser desfeita.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={handleDeleteConfirm}>
+                                        Excluir
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             </div>
                           </CardContent>
                         </Card>
-                        
-                        {isExpanded && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-4 animated-fadeIn">
-                            {userMeetings.map((meeting) => (
-                              <Card key={meeting.id} className="hover:shadow-lg transition-all hover:shadow-primary/10 border-border/50 bg-gradient-card">
-                                <CardHeader>
-                                  <div className="flex items-center justify-between">
-                                    <CardTitle className="text-lg truncate text-foreground">{meeting.title}</CardTitle>
-                                    <Badge variant={
-                                      meeting.status === "completed" ? "default" :
-                                      meeting.status === "processing" ? "secondary" : "outline"
-                                    }>
-                                      {meeting.status === "completed" ? "Concluída" :
-                                       meeting.status === "processing" ? "Processando" : meeting.status}
-                                    </Badge>
-                                  </div>
-                                  <CardDescription className="text-muted-foreground">
-                                    {meeting.client_company && `${meeting.client_company} • `}
-                                    {meeting.start_time 
-                                      ? new Date(meeting.start_time).toLocaleDateString('pt-BR', {
-                                          day: '2-digit',
-                                          month: '2-digit',
-                                          year: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        })
-                                      : new Date(meeting.created_at).toLocaleDateString('pt-BR')
-                                    }
-                                  </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                  <div className="space-y-3">
-                                    {meeting.duration_seconds && (
-                                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Clock className="w-4 h-4" />
-                                        {Math.round(meeting.duration_seconds / 60)} min
-                                      </div>
-                                    )}
-                                    {meeting.meeting_participants && meeting.meeting_participants.length > 0 && (
-                                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Users className="w-4 h-4" />
-                                        {meeting.meeting_participants.length} participantes
-                                      </div>
-                                    )}
-                                    {meeting.meeting_insights?.[0]?.interest_score !== undefined && (
-                                      <div className="space-y-2">
-                                        <div className="flex items-center justify-between text-sm">
-                                          <span className="text-foreground">Score de Interesse</span>
-                                          <span className="font-medium text-primary">{meeting.meeting_insights[0].interest_score}%</span>
-                                        </div>
-                                        <Progress value={meeting.meeting_insights[0].interest_score} className="h-2" />
-                                      </div>
-                                    )}
-                                    {meeting.meeting_insights?.[0]?.sentiment && (
-                                      <div className="flex items-center gap-2 text-sm">
-                                        <Badge 
-                                          variant={
-                                            meeting.meeting_insights[0].sentiment === "positive" ? "default" :
-                                            meeting.meeting_insights[0].sentiment === "negative" ? "destructive" : "secondary"
-                                          }
-                                        >
-                                          {meeting.meeting_insights[0].sentiment === "positive" ? "Positivo" :
-                                           meeting.meeting_insights[0].sentiment === "negative" ? "Negativo" : "Neutro"}
-                                        </Badge>
-                                      </div>
-                                    )}
-                                    <div className="flex gap-2 pt-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleViewDetails(meeting);
-                                        }}
-                                        className="flex-1"
-                                      >
-                                        Ver Detalhes
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setMeetingToDelete(meeting);
-                                            }}
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Tem certeza que deseja excluir a reunião "{meetingToDelete?.title}"? 
-                                              Esta ação não pode ser desfeita.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleDeleteConfirm}>
-                                              Excluir
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </section>
             </TabsContent>
